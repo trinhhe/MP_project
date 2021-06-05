@@ -1,14 +1,16 @@
 trainer: conv
 out_dir: ../tmp_out  # NOTE: specify a directory in your scratch directory on Leonhard
 
-device: cuda
+# device: cuda
+device: cpu
 
 model:
   name: conv
 
 training:
   print_every: 100
-  validate_every: 5000
+  # validate_every: 5000
+  validate_every: 0
   checkpoint_every: 5000
 
   optimizer:
@@ -29,10 +31,15 @@ data:
   dataset: base  # dataset type
   resy: 256
   resx: 256
-  train_subjects: S1,S5,S6
-  val_subjects: S7,S8  # you could use this subjects for training as well
-
+  # train_subjects: S1,S5,S6
+  train_subjects: S1
+  # val_subjects: S7,S8  # you could use this subjects for training as well
+  # val_subjects:
   # there is no need to modify the following parameters on Leonhard
-  dataset_folder: /cluster/project/infk/hilliges/lectures/mp21/project3/data/H36M_data_st
-  img_folder: /cluster/project/infk/hilliges/lectures/mp21/project3/data/H36M
-  bm_path: /cluster/project/infk/hilliges/lectures/mp21/project3/body_model/model.npz
+  # dataset_folder: /cluster/project/infk/hilliges/lectures/mp21/project3/data/H36M_data_st
+  # img_folder: /cluster/project/infk/hilliges/lectures/mp21/project3/data/H36M
+  # bm_path: /cluster/project/infk/hilliges/lectures/mp21/project3/body_model/model.npz
+
+  dataset_folder: /home/henry/Documents/ETH_MA/MachinePerception/project3/H36M_data_st
+  img_folder: /home/henry/Documents/ETH_MA/MachinePerception/project3/H36M
+  bm_path: /home/henry/Documents/ETH_MA/MachinePerception/project3/body_model/model.npz

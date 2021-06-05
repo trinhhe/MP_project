@@ -45,7 +45,6 @@ def get_data_loader(cfg, mode='train'):
         mode=mode,
         img_size=(512, 512)
     )
-
     data_loader = DataLoader(
         dataset,
         batch_size=batch_size,

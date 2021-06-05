@@ -24,7 +24,7 @@ def train(cfg, model_file):
 
     # init datasets
     train_data_loader = config.get_data_loader(cfg, mode='train')
-    val_data_loader = config.get_data_loader(cfg, mode='val')
+    # val_data_loader = config.get_data_loader(cfg, mode='val')
 
     # load pretrained modes if any
     load_dict = checkpoint_io.safe_load(model_file)
