@@ -1,0 +1,5 @@
+__pycache__
+.DS_Store
+.vscode
+# .codebase/__pycache__/*
+# .codebase/data/__pycache__/
