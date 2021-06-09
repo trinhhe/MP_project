@@ -112,4 +112,5 @@ class ConvModel(BaseModel):
             'pose_body': pose_body,
             'pose_hand': pose_hand
         }
+        
         return predictions
