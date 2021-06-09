@@ -75,6 +75,7 @@ class ConvTrainer(BaseTrainer):
         loss_dict = self.compute_training_loss(data)
         loss_dict['total_loss'].backward()
         self.optimizer.step()
+
         return {k: v.item() for k, v in loss_dict.items()}
 
     @torch.no_grad()
@@ -86,11 +87,11 @@ class ConvTrainer(BaseTrainer):
             key_list (list of str): a list of attributes that indicate which values to return
 
         Returns (dict):
-            root_loc (torch.Tensor):  (B, 3).
+               root_loc (torch.Tensor):  (B, 3).
             root_orient (torch.Tensor): (B, 3)
-            betas (torch.Tensor): (B, 10)
-            pose_body (torch.Tensor): (B, 21*3)
-            pose_hand (torch.Tensor): (B, 2*3)
+                  betas (torch.Tensor): (B, 10)
+              pose_body (torch.Tensor): (B, 21*3)
+              pose_hand (torch.Tensor): (B, 2*3)
         """
         self.model.eval()
         self._data2device(data)
@@ -112,12 +113,14 @@ class ConvTrainer(BaseTrainer):
         self.model.eval()
         eval_list = defaultdict(list)
         eval_images = None
+
         for data in tqdm(val_loader):
             self._data2device(data)
             prediction = self.model.forward(data)
 
             ret_images = eval_images is None or eval_images.shape[0] < 10
             eval_step_dict, imgs = self.compute_val_loss(prediction, data, ret_images)
+
             if eval_images is None:
                 eval_images = imgs[:max_images, ...].cpu()
             elif eval_images.shape[0] < max_images:
@@ -128,10 +131,13 @@ class ConvTrainer(BaseTrainer):
                 eval_list[k].append(v)
 
         eval_dict = {k: float(np.mean(v)) for k, v in eval_list.items()}
+
         # concatenate images along the W dimension
         eval_images = eval_images.permute(2, 0, 3, 1).contiguous()
         eval_images = eval_images.view(eval_images.shape[0], -1, 3).permute(2, 0, 1)
+
         return eval_dict, eval_images
+
 
     def compute_training_loss(self, data):
         """ Computes loss values.
@@ -160,13 +166,11 @@ class ConvTrainer(BaseTrainer):
 
     @torch.no_grad()
     def _compute_gt_vertices(self, data):
-        return self.model.get_vertices(
-            data['root_loc'],
-            data['root_orient'],
-            data['betas'],
-            data['pose_body'],
-            data['pose_hand']
-        )
+        return self.model.get_vertices(data['root_loc'],
+                                       data['root_orient'],
+                                       data['betas'],
+                                       data['pose_body'],
+                                       data['pose_hand'])
 
     def compute_val_loss(self, prediction, data, ret_images=False):
         gt_vertices = self._compute_gt_vertices(data)

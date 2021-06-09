@@ -38,24 +38,20 @@ def get_data_loader(cfg, mode='train'):
         subjects = ['S9', 'S11']
         batch_size = 1
 
-    dataset = H36MDataset(
-        dataset_folder=cfg['data']['dataset_folder'],
-        img_folder=cfg['data']['img_folder'],
-        subjects=subjects,
-        mode=mode,
-        img_size=(512, 512)
-    )
+    dataset = H36MDataset(dataset_folder=cfg['data']['dataset_folder'],
+                          img_folder=cfg['data']['img_folder'],
+                          subjects=subjects,
+                          mode=mode,
+                          img_size=(512, 512))
 
-    data_loader = DataLoader(
-        dataset,
-        batch_size=batch_size,
-        num_workers=cfg['training'].get('num_workers', 0),
-        shuffle=mode == 'train',
-        collate_fn=dataset.collate_fn
-    )
+    data_loader = DataLoader(dataset,
+                             batch_size=batch_size,
+                             num_workers=cfg['training'].get('num_workers', 0),
+                             shuffle=mode == 'train',
+                             collate_fn=dataset.collate_fn)
     return data_loader
 
-
+# Load the model
 def get_model(cfg):
     model = BaseModel.create_model(cfg)
     return model.to(device=cfg['device'])
