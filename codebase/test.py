@@ -89,7 +89,7 @@ def test(cfg, cfg_path, model_file):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Test pipeline.')
-    parser.add_argument('config', type=str, help='Path to a config file.')
+    parser.add_argument('--config', type=str, default='../configs/default.yaml', help='Path to a config file.')
     parser.add_argument('--model_file', type=str, default=None, help='Overwrite the model path.')
     args = parser.parse_args()
 
