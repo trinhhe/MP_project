@@ -111,15 +111,14 @@ Explanation of options:
 -W 2:00 Wall time (here 2 hours). After running for this many hours your job is automatically cancelled. This also determines in which queue your job lands.
 -o sample_test After completion of your script, its output is written into this file stored in the current directory.
 -R Requested resources. mem is in MB and per requested CPU core, i.e. here we are requesting 6 GB. ngpus_excl_p is the amount of GPUs requested (must always be 1).
-../configs/default.yaml
+../configs/default.yaml A configuration file for your experiment.
 ```
 
-A configuration file for your experiment.
 After you submitted the job, you can check its status via `bjobs or bbjos` (better bjobs). 
 When the job is waiting in the queue its status is PEND, once it is running it will change to RUN. 
 Here you can also find a unique job id. You can check some details of the job via `bjobs -l job_id` (e.g. how much memory your job used). 
 Use `bpeek job_id` to peek at what the job recently wrote to standard out (note: this is buffered output and not real-time). 
-Once the job finished you should find a file sample_test in the directory where you submitted the job from. 
+Once the job finished you should find a file `sample_test` in the directory where you submitted the job from. 
 Note that this file is always provided, no matter whether the job finished correctly or not. I.e., if your job was killed because of an exception, you can find the stack trace in this file.
 
 These are the most important commands to monitor your jobs. More details can be found on the Leonhard wiki page.
@@ -142,14 +141,15 @@ When handing in the task, the form asks for a short description of your approach
 
 ## In summary, to complete the final submission you should:
 
-Select the final submission in the submission system and complete step "3. Hand in Final Solution".
-Push all your code required to reproduce your final submission to your group's gitlab repo, which we provided in the beginning. 
+- Select the final submission in the submission system and complete step "3. Hand in Final Solution".
+- Push all your code required to reproduce your final submission to your group's gitlab repo, which we provided in the beginning. 
 Please also include a README detailing how to re-produce your results (simply adding the command lines to train and evaluate your model with the final state of your repo is enough). We will take a snapshot of your repository at the time of the deadline. Everything pushed after the deadline will be automatically discarded.
-Write and submit a brief 3-page report as explained above. You can push the PDF to your repo.
-Please do not commit your trained models, intermediate data representations or any other large files. Your submitted code should be able to reproduce them.
-In addition, the following non-binding guidance provides you with an idea on what is expected to obtain a certain grade: If you hand in a properly-written description, your source code is runnable and reproduces your predictions, and your submission performs better than the easy baseline, you may expect a grade exceeding a 4. If your submission performs equal to or better than the hard baseline, you may expect a 5.5. The top 2 submissions will achieve 6 and everything in-between the second best submission and the hard baseline will be linearly interpolated. The grade computed as mentioned above can go up or down, depending on the contributions of your project, as indicated by the report. If you passed the easy baseline, however, your final grade cannot go lower than 4 after the weighting.
+- Write and submit a brief 3-page report as explained above. You can push the PDF to your repo.
+- Please do not commit your trained models, intermediate data representations or any other large files. Your submitted code should be able to reproduce them.
 
-Make sure that you properly hand in the required materials, otherwise you may obtain zero points.
+In addition, the following non-binding guidance provides you with an idea on what is expected to obtain a certain grade: If you hand in a properly-written description, your source code is runnable and reproduces your predictions, and your submission performs better than the easy baseline, you may expect a grade exceeding a 4. If your submission performs equal to or better than the hard baseline, you may expect a 5.5. The top 2 submissions will achieve 6 and everything in-between the second best submission and the hard baseline will be linearly interpolated. The grade computed as mentioned above can go up or down, depending on the contributions of your project, as indicated by the report. If you passed the easy baseline, however, your final grade cannot go lower than 4 after the weighting.  
+
+**Make sure that you properly hand in the required materials, otherwise you may obtain zero points.**
 
 # FREQUENTLY ASKED QUESTIONS
 ##ARE WE ALLOWED TO USE PYTORCH ONLY?

@@ -6,6 +6,7 @@ import cv2
 import numpy as np
 import torch
 from torch.utils.data.dataloader import default_collate
+import matplotlib.pyplot as plt
 
 from data.macros import cam_params
 from data.util import crop
@@ -21,10 +22,10 @@ class H36MDataset(torch.utils.data.Dataset):
 
         Args:
             dataset_folder (str): dataset folder
-            img_folder (str): dataset folder
-            subjects (list): list of subjects to use
-            mode (str): train, val, or test mode
-            img_size (tuple): image resolution. Tuple of integers (height, width).
+                img_folder (str): dataset folder
+                 subjects (list): list of subjects to use
+                      mode (str): train, val, or test mode
+                img_size (tuple): image resolution. Tuple of integers (height, width).
         """
         # Attributes
         self.dataset_folder = dataset_folder
@@ -54,16 +55,16 @@ class H36MDataset(torch.utils.data.Dataset):
 
                     points_files = sorted(glob(join(points_dir, '*.npz')))
                     # for f_idx, points_file in enumerate(points_files):
+
                     for points_file in points_files:
                         data_frame = int(splitext(basename(points_file))[0])
                         img_frame_id = data_frame + 1
-                        data.append({
-                            'subject': subject,
-                            'sequence': action,
-                            'cam_idx': cam_idx,
-                            'img_file': join(img_dir, f'{img_frame_id:06d}.jpg'),
-                            'points_file': points_file
-                        })
+
+                        data.append({'subject': subject,
+                                     'sequence': action,
+                                     'cam_idx': cam_idx,
+                                     'img_file': join(img_dir, f'{img_frame_id:06d}.jpg'),
+                                     'points_file': points_file})
         return data
 
     def __len__(self):
@@ -91,38 +92,57 @@ class H36MDataset(torch.utils.data.Dataset):
         image = cv2.cvtColor(cv2.imread(img_path), cv2.COLOR_BGR2RGB)
         points_dict = np.load(data_path)
 
-        # hint: implement data augmentation
+        # TODO: Hint: implement data augmentation
         # Crop image
         image_crop = crop(image, points_dict['center_img'], points_dict['scale_img'], self.img_size).astype(np.float32)
         image_crop = (image_crop / 255.0 - self.mean) / self.std  # normalization
-        image_crop = image_crop.transpose([2, 0, 1])  # -> PyTorch tensor format
+        image_crop = np.clip(image_crop, a_min=0., a_max=1.)      # clip
+        # plt.imshow(image_crop);plt.show()
 
-        data_out = {
-            'image_crop': image_crop,
-            'root_loc': points_dict['root_loc'],
-            'cx': np.array([cam_params[cam_idx]['center'][0]]),
-            'cy': np.array([cam_params[cam_idx]['center'][1]]),
-            'fx': np.array([cam_params[cam_idx]['focal_length'][0]]),
-            'fy': np.array([cam_params[cam_idx]['focal_length'][1]]),
-            'idx': idx,
-            'file_id': self._get_file_id(idx)
-        }
+        # Apply augmentation only when training
+        if self.mode in ['train']:
+            np.random.seed(42)
+
+            # 1.) Add random Gaussian noise
+            mu, sigma = 0, 0.1         # set mean and standard deviation
+            gaussian_noise = np.random.normal(mu, sigma, size = image_crop.shape)
+            noise_factor = 3
+            image_crop = image_crop + noise_factor * gaussian_noise.astype('float32')
+            # plt.imshow(image_crop);plt.show()
+
+            # 2.) Add random rotation
+            # rnd_flip = np.random.choice([0, 1], size=1)
+            # print(rnd_flip)
+
+            # if rnd_flip == True:
+            #    image_crop = np.flip(image_crop, axis=1)
+                # plt.imshow(image_crop);plt.show()
+
+        # -> PyTorch tensor format
+        image_crop = image_crop.transpose([2, 0, 1])
+
+
+        data_out = {'image_crop': image_crop,
+                    'root_loc': points_dict['root_loc'],
+                    'cx': np.array([cam_params[cam_idx]['center'][0]]),
+                    'cy': np.array([cam_params[cam_idx]['center'][1]]),
+                    'fx': np.array([cam_params[cam_idx]['focal_length'][0]]),
+                    'fy': np.array([cam_params[cam_idx]['focal_length'][1]]),
+                    'idx': idx,
+                    'file_id': self._get_file_id(idx)}
+
         if self.mode in ['train', 'val']:
-            data_out.update({
-                'betas': points_dict['betas'],
-                'pose_body': points_dict['pose_body'],
-                'pose_hand': points_dict['pose_hand'],
-                'root_orient': points_dict['root_orient']
-            })
+            data_out.update({'betas': points_dict['betas'],
+                            'pose_body': points_dict['pose_body'],
+                            'pose_hand': points_dict['pose_hand'],
+                            'root_orient': points_dict['root_orient']})
 
         if self.mode in ['val']:
             if image.shape[0] == 1000:
                 # pad 1 pixel to nicely fit in memory; the full image is used only for debugging/visualization
                 image = np.pad(image, pad_width=((0, 2), (0, 0), (0, 0)), mode='reflect')
 
-            data_out.update({
-                'image': image.transpose([2, 0, 1])  # -> PyTorch tensor format
-            })
+            data_out.update({'image': image.transpose([2, 0, 1])})    # -> PyTorch tensor format
 
         # float64 -> float32
         data_out.update({
@@ -138,6 +158,7 @@ class H36MDataset(torch.utils.data.Dataset):
         batch = []
         for sample in data:
             batch.append({key: val for key, val in sample.items() if key != 'file_id'})
+
         batch = default_collate(batch)
         batch['file_id'] = [x['file_id'] for x in data]
 
