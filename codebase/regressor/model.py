@@ -1,10 +1,10 @@
 from abc import ABC
-
+import torch
 from torch import nn
 from .body_model import BodyModel
 from torch import hub
 import torchvision.models as models
-
+import numpy as np
 
 class BaseModel(nn.Module, ABC):
     def __init__(self, cfg):
@@ -41,7 +41,7 @@ class BaseModel(nn.Module, ABC):
         """ Fwd pass through the parametric body model to obtain mesh vertices.
 
         Args:
-               root_loc (torch.Tensor): Root location (B, 10).
+               root_loc (torch.Tensor): Root location (B, 3).
             root_orient (torch.Tensor): Root orientation (B, 3).
                   betas (torch.Tensor): Shape coefficients (B, 10).
               pose_body (torch.Tensor): Body joint rotations (B, 21*3).
@@ -50,7 +50,8 @@ class BaseModel(nn.Module, ABC):
         Returns:
             mesh vertices (torch.Tensor): (B, 6890, 3)
         """
-
+        # print(f'batchsize: {self.batch_size}')
+        # print(f'rootloc{root_loc.shape}')
         body = self.body_model(trans=root_loc,
                                root_orient=root_orient,
                                pose_body=pose_body,
@@ -60,6 +61,110 @@ class BaseModel(nn.Module, ABC):
         vertices = body.v
         return vertices
 
+class ParameterRegressor(nn.Module):
+
+    def __init__(self, feature_count):
+        super().__init__()
+        # self.batch_size = batch_size
+        # In HMR implementation (https://github.com/MandyMo/pytorch_HMR) they initialize with mean_theta (all smpl parameters concatened)
+        # Dunno how to get them without downloading their file, so I just get some random numbers between -0.3;0.3 and increase iterations
+        # init_theta = np.zeros(82, dtype = np.float)
+        init_theta = torch.from_numpy((np.random.random_sample(82) * (0.3+0.3) - 0.3).astype('float32'))
+        self.register_buffer('init_theta', init_theta)
+
+        self.fc1 = nn.Linear(feature_count + 82, 1024)
+        self.drop1 = nn.Dropout()
+        self.fc2 = nn.Linear(1024,1024)
+        self.drop2 = nn.Dropout()
+        self.dec_root_orient = nn.Linear(1024, 3)
+        self.dec_pos_body = nn.Linear(1024, 63)
+        self.dec_pos_hand = nn.Linear(1024, 6)
+        self.dec_beta = nn.Linear(1024, 10)
+
+    def forward(self, input, iterations):
+        '''
+            input: output of nn encoder
+        '''
+        batch_size = input.shape[0]
+        pred_theta = self.init_theta.expand(batch_size, -1)
+        pred_root_orient = pred_theta[:,:3]
+        pred_pos_body = pred_theta[:,3:66]
+        pred_pos_hand = pred_theta[:,66:72]
+        pred_beta = pred_theta[:,72:]        
+
+        for i in range(iterations):
+            input_c = torch.cat([input, pred_theta], 1)
+            input_c = self.fc1(input_c)
+            input_c = self.drop1(input_c)
+            input_c = self.fc2(input_c)
+            input_c = self.drop2(input_c)
+            pred_root_orient = self.dec_root_orient(input_c) + pred_root_orient
+            pred_pos_body = self.dec_pos_body(input_c) + pred_pos_body
+            pred_pos_hand = self.dec_pos_hand(input_c) + pred_pos_hand
+            pred_beta = self.dec_beta(input_c) + pred_beta
+
+        return pred_root_orient, pred_pos_body, pred_pos_hand, pred_beta
+
+class Identity(nn.Module):
+    def __init__(self):
+        super(Identity, self).__init__()
+        
+    def forward(self, x):
+        return x
+
+class ConvModel_Pre(BaseModel):
+    def __init__(self, cfg):
+        super().__init__(cfg)
+
+        self.backbone_f_len = cfg['model'].get('backbone_f_len', 512)
+        self._build_net()
+
+    def _build_net(self):
+        """ Creates NNs. """
+
+        print(f'Loading resnet_18 model...')
+        self.backbone = models.resnet18()  #hub.load('pytorch/vision:v0.9.0', 'inception_v3', pretrained=True)
+
+        # train only the classifier layer
+        for param in self.backbone.parameters():
+            param.requires_grad = False
+        # fc_in = self.backbone.fc.in_features
+        # fc_out = self.backbone_f_len
+        # self.backbone.fc = nn.Linear(in_features=fc_in, out_features=fc_out)
+        
+        #no classifier, Iterative regressor takes the output of resnet which is average pooled
+        self.backbone.fc = Identity()
+        
+        self.regressor = ParameterRegressor(self.backbone_f_len)
+
+    def forward(self, input_data):
+        """ Fwd pass.
+
+        Returns (dict):
+            mesh vertices (torch.Tensor): (B, 6890, 3)
+        """
+        image_crop = input_data['image_crop']
+        root_loc = input_data['root_loc']
+        # print(input_data['file_id'])
+
+        img_encoding = self.backbone(image_crop)
+        # img_encoding = img_encoding.view(img_encoding.size(0), -1)
+        # print(img_encoding.shape)
+        # regress parameters
+        iterations = 3
+        root_orient, pose_body, pose_hand, betas = self.regressor(img_encoding, iterations)
+
+        # regress vertices
+        vertices = self.get_vertices(root_loc, root_orient, betas, pose_body, pose_hand)
+
+        predictions = {'vertices': vertices,
+                       'root_loc': root_loc,
+                       'root_orient': root_orient,
+                       'betas': betas,
+                       'pose_body': pose_body,
+                       'pose_hand': pose_hand}
+
+        return predictions
 
 class ConvModel(BaseModel):
     def __init__(self, cfg):
@@ -115,58 +220,12 @@ class ConvModel(BaseModel):
 
         return predictions
 
-
-class ConvModel_Pre(BaseModel):
-    def __init__(self, cfg):
-        super().__init__(cfg)
-
-        self.backbone_f_len = cfg['model'].get('backbone_f_len', 500)
-        self._build_net()
-
-    def _build_net(self):
-        """ Creates NNs. """
-
-        print(f'Loading resnet_18 model...')
-        self.backbone = models.resnet18()  #hub.load('pytorch/vision:v0.9.0', 'inception_v3', pretrained=True)
-
-        # train only the classifier layer
-        for param in self.backbone.parameters():
-            param.requires_grad = False
-        fc_in = self.backbone.fc.in_features
-        fc_out = self.backbone_f_len
-        self.backbone.fc = nn.Linear(in_features=fc_in, out_features=fc_out)
-
-        self.nn_root_orient = nn.Linear(self.backbone_f_len, 3)
-        self.nn_betas = nn.Linear(self.backbone_f_len, 10)
-        self.nn_pose_body = nn.Linear(self.backbone_f_len, 63)
-        self.nn_pose_hand = nn.Linear(self.backbone_f_len, 6)
-
-    def forward(self, input_data):
-        """ Fwd pass.
-
-        Returns (dict):
-            mesh vertices (torch.Tensor): (B, 6890, 3)
-        """
-        image_crop = input_data['image_crop']
-        root_loc = input_data['root_loc']
-        # print(input_data['file_id'])
-
-        img_encoding = self.backbone(image_crop)
-
-        # regress parameters
-        root_orient = self.nn_root_orient(img_encoding)
-        betas = self.nn_betas(img_encoding)
-        pose_body = self.nn_pose_body(img_encoding)
-        pose_hand = self.nn_pose_hand(img_encoding)
-
-        # regress vertices
-        vertices = self.get_vertices(root_loc, root_orient, betas, pose_body, pose_hand)
-
-        predictions = {'vertices': vertices,
-                       'root_loc': root_loc,
-                       'root_orient': root_orient,
-                       'betas': betas,
-                       'pose_body': pose_body,
-                       'pose_hand': pose_hand}
-
-        return predictions
+if __name__ == '__main__':
+    x = torch.rand(10,500).float()
+    net = ParameterRegressor(x.shape[1])
+    a,b,c,d = net(x,2)
+    # print(a)
+    # print(b)
+    # print(c)
+    # print(d)
+    # print(net.named_buffers)

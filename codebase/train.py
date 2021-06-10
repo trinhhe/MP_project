@@ -1,6 +1,6 @@
 import argparse
 from os.path import join
-# import cv2
+import numpy as np
 
 # import torch
 from tensorboardX import SummaryWriter
@@ -161,3 +161,20 @@ if __name__ == '__main__':
     print(_args)
 
     train(config.load_config(_args), _args.model_file)
+    # smpl_dict = np.load(config.load_config(_args)['data']['bm_path'], encoding='latin1')
+    # print(smpl_dict['shapedirs'].shape)
+    # # print(smpl_dict['shapedirs'][-1])
+    # print(smpl_dict['posedirs'].shape)
+    # posedirs = smpl_dict['posedirs']
+    # posedirs = posedirs.reshape([posedirs.shape[0] * 3, -1]).T
+    # print(posedirs.shape)
+   # print(smpl_dict[])
+
+    # import h5py
+    # mean_values = h5py.File("/home/henry/Downloads/neutral_smpl_mean_params.h5")
+    # print('shape values')
+    # for i in range(mean_values['shape'].shape[0]):
+    #     print(mean_values['shape'][i])
+    # print('pose values')
+    # for i in range(mean_values['pose'].shape[0]):
+    #     print(mean_values['pose'][i])
