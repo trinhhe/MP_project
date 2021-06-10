@@ -116,26 +116,27 @@ class ConvModel_Pre(BaseModel):
     def __init__(self, cfg):
         super().__init__(cfg)
 
-        self.backbone_f_len = cfg['model'].get('backbone_f_len', 512)
+        # self.backbone_f_len = cfg['model'].get('backbone_f_len', 512)
         self._build_net()
 
     def _build_net(self):
         """ Creates NNs. """
 
-        print(f'Loading resnet_18 model...')
-        self.backbone = models.resnet18()  #hub.load('pytorch/vision:v0.9.0', 'inception_v3', pretrained=True)
+        print(f'Loading resnet_50 model...')
+        self.backbone = models.resnet50(pretrained=True)  #hub.load('pytorch/vision:v0.9.0', 'inception_v3', pretrained=True)
 
         # train only the classifier layer
-        for param in self.backbone.parameters():
-            param.requires_grad = False
+        # for param in self.backbone.parameters():
+        #     param.requires_grad = False
         # fc_in = self.backbone.fc.in_features
         # fc_out = self.backbone_f_len
         # self.backbone.fc = nn.Linear(in_features=fc_in, out_features=fc_out)
         
         #no classifier, Iterative regressor takes the output of resnet which is average pooled
+        num_ftrs = self.backbone.fc.in_features
         self.backbone.fc = Identity()
         
-        self.regressor = ParameterRegressor(self.backbone_f_len)
+        self.regressor = ParameterRegressor(num_ftrs)
 
     def forward(self, input_data):
         """ Fwd pass.
