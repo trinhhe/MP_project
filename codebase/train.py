@@ -76,7 +76,7 @@ def train(cfg, model_file):
 
     # training loop
     t_0 = time()
-
+    bad_epochs = 0
     # while True:
     for epoch in range(1, _args.epochs + 1):
         print('------------------------------------------')
@@ -85,7 +85,6 @@ def train(cfg, model_file):
 
         epoch_it += 1
         t_0_epoch = time()
-
         for batch in train_data_loader:
             it += 1
             # batch['image_crop'].size(0)

@@ -9,7 +9,7 @@ model:
 
 training:
   print_every: 1000
-  validate_every: 4963   # 5000
+  validate_every: 5000   # 5000
   checkpoint_every: 0 # 5000
 
   optimizer:
@@ -34,9 +34,9 @@ data:
   val_subjects: S7,S8  # TODO:you could use this subjects for training as well
 
   # there is no need to modify the following parameters on Leonhard
-  dataset_folder: c:/Dataset/data/H36M_data_st    # /cluster/project/infk/hilliges/lectures/mp21/project3/data/H36M_data_st
-  img_folder: c:/Dataset/data/H36M                # /cluster/project/infk/hilliges/lectures/mp21/project3/data/H36M
-  bm_path: c:/Dataset/body_model/model.npz   # /cluster/project/infk/hilliges/lectures/mp21/project3/body_model/model.npz
+  dataset_folder: /cluster/project/infk/hilliges/lectures/mp21/project3/data/H36M_data_st
+  img_folder: /cluster/project/infk/hilliges/lectures/mp21/project3/data/H36M
+  bm_path: /cluster/project/infk/hilliges/lectures/mp21/project3/body_model/model.npz
 
   # dataset_folder: /home/henry/Documents/ETH_MA/MachinePerception/project3/H36M_data_st
   # img_folder: /home/henry/Documents/ETH_MA/MachinePerception/project3/H36M
