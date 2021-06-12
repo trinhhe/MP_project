@@ -91,7 +91,6 @@ class H36MDataset(torch.utils.data.Dataset):
         assert exists(img_path)
         image = cv2.cvtColor(cv2.imread(img_path), cv2.COLOR_BGR2RGB)
         points_dict = np.load(data_path)
-        
         # TODO: Hint: implement data augmentation
         # Crop image
         image_crop = crop(image, points_dict['center_img'], points_dict['scale_img'], self.img_size).astype(np.float32)

@@ -152,7 +152,7 @@ class ConvModel_Pre(BaseModel):
         # img_encoding = img_encoding.view(img_encoding.size(0), -1)
         # print(img_encoding.shape)
         # regress parameters
-        iterations = 3
+        iterations = 5
         root_orient, pose_body, pose_hand, betas = self.regressor(img_encoding, iterations)
 
         # regress vertices
