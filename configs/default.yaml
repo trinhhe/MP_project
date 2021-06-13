@@ -16,13 +16,13 @@ training:
     # name: SGD
     # lr: 0.0001
     name: ADAM
-    lr: 5e-5
+    lr: 0.0001
 
   batch_size: 32
   num_workers: 4
 
 loss:
-  v2v_l1: False   # loss type
+  v2v_l1: True   # loss type
   v2v_l1_w: 1.0  # corresponding weight
 
   v2v_l2: True
@@ -32,7 +32,7 @@ data:
   dataset: base  # dataset type
   resy: 256 # 256
   resx: 256 # 256
-  train_subjects: S1,S5,S6
+  train_subjects: S1, S5,S6
   val_subjects: S7,S8  # TODO:you could use this subjects for training as well
 
   # there is no need to modify the following parameters on Leonhard

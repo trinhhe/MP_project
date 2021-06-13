@@ -140,7 +140,7 @@ def plot_gt_pred(model, data, mode, max_images=5):
     eval_images = eval_images.view(eval_images.shape[0], -1, 3).permute(2, 0, 1)
 
     plt.figure(figsize=(20, 12))
-    plt.imshow(eval_images.permute([1, 2, 0]));
+    plt.imshow(eval_images.permute([1, 2, 0]))
     plt.axis('off')
     plt.show()
 

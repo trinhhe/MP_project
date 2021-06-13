@@ -126,8 +126,8 @@ class ConvModel_Pre(BaseModel):
         self.backbone = models.resnet50(pretrained=True)  #hub.load('pytorch/vision:v0.9.0', 'inception_v3', pretrained=True)
 
         # train only the classifier layer
-        # for param in self.backbone.parameters():
-        #     param.requires_grad = False
+        for param in self.backbone.parameters():
+            param.requires_grad = False
         # fc_in = self.backbone.fc.in_features
         # fc_out = self.backbone_f_len
         # self.backbone.fc = nn.Linear(in_features=fc_in, out_features=fc_out)
