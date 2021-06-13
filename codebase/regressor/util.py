@@ -7,11 +7,11 @@ def proj_vertices(points, images, fx, fy, cx, cy):
 
     Args:
         points (torch.Tensor): 3D points (B, N, 3)
-        images:  3D points (B, 3, H, W)
-        fx: focal length (B,)
-        fy: focal length (B,)
-        cx: focal length (B,)
-        cy: focal length (B,)
+                       images:  3D points (B, 3, H, W)
+                           fx: focal length (B,)
+                           fy: focal length (B,)
+                           cx: focal length (B,)
+                           cy: focal length (B,)
 
     Returns:
         rendered_img (torch.Tensor): Images with marked vertex locations (B, 3, H, W).

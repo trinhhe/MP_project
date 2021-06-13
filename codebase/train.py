@@ -50,6 +50,7 @@ def train(cfg, model_file):
 
     # Check data
     print(f'Len training data: {len(train_data_loader)}')
+    print(f'Len val data: {len(val_data_loader)}')
     # items = next(iter(train_data_loader))
     # items.keys()
     # eval_dict, val_img = trainer.evaluate(items)
@@ -113,6 +114,7 @@ def train(cfg, model_file):
                 print(f'Epoch {epoch}/{_args.epochs} - Validation running...')
                 print('------------------------------------------')
 
+                bad_epochs = 0
                 eval_dict, val_img = trainer.evaluate(val_data_loader)
 
                 # Run val, get eval loss metric
@@ -130,13 +132,14 @@ def train(cfg, model_file):
                 if metric_val < metric_val_best:
                     metric_val_best = metric_val
                     print(f'New best model (loss {metric_val_best:.8f})')
-                    checkpoint_io.save('model_best.pt', epoch_it=epoch_it, it=it, loss_val_best=metric_val_best)
+                    checkpoint_io.save(f'{logger.logdir}/model_best.pt', epoch_it=epoch_it, it=it, loss_val_best=metric_val_best)
                     bad_epochs = 0
                 else:
                     bad_epochs += 1
+                    print(f'Eval did not improve, since {bad_epochs} epochs.')
 
                 if bad_epochs == _args.early_stop:
-                    print(f'Early stopping.')
+                    print(f'Early stopping after {bad_epochs} epochs.')
                     break
 
         # time to finish one epoch
