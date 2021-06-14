@@ -127,7 +127,7 @@ class ConvModel_Pre(BaseModel):
 
         # train only the classifier layer
         for param in self.backbone.parameters():
-            param.requires_grad = False
+            param.requires_grad = True
         # fc_in = self.backbone.fc.in_features
         # fc_out = self.backbone_f_len
         # self.backbone.fc = nn.Linear(in_features=fc_in, out_features=fc_out)
