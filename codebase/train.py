@@ -49,6 +49,7 @@ def train(cfg, model_file):
 
     # Check data
     print(f'Len training data: {len(train_data_loader)}')
+    print(f'Len val data: {len(val_data_loader)}')
     # items = next(iter(train_data_loader))
     # items.keys()
     # eval_dict, val_img = trainer.evaluate(items)
@@ -67,7 +68,8 @@ def train(cfg, model_file):
     # Name the experiment
     #####################
     config.cond_mkdir(out_dir)
-    comment = '_[resnet18_S1_S6_gaussian]'  # '_[resnet18]'
+
+    comment = '_[resnet18_S1_S6_new3_img_body_rnd_sc_rot_flip_ch_noise_b32]'  # '_[resnet18]'
     log_time = datetime.now().strftime("%Y%m%d-%H%M%S")
     logger = SummaryWriter(join(out_dir, 'logs', log_time + comment))
     print(f'Running experiment: {logger.file_writer.get_logdir()}')
@@ -113,6 +115,7 @@ def train(cfg, model_file):
                 print(f'Epoch {epoch}/{_args.epochs} - Validation running...')
                 print('------------------------------------------')
 
+                bad_epochs = 0
                 eval_dict, val_img = trainer.evaluate(val_data_loader)
 
                 # Run val, get eval loss metric
@@ -130,13 +133,14 @@ def train(cfg, model_file):
                 if metric_val < metric_val_best:
                     metric_val_best = metric_val
                     print(f'New best model (loss {metric_val_best:.8f})')
-                    checkpoint_io.save('model_best.pt', epoch_it=epoch_it, it=it, loss_val_best=metric_val_best)
+                    checkpoint_io.save(f'{logger.logdir}/model_best.pt', epoch_it=epoch_it, it=it, loss_val_best=metric_val_best)
                     bad_epochs = 0
                 else:
                     bad_epochs += 1
+                    print(f'Eval did not improve, since {bad_epochs} epochs.')
 
                 if bad_epochs == _args.early_stop:
-                    print(f'Early stopping.')
+                    print(f'Early stopping after {bad_epochs} epochs.')
                     break
 
         # time to finish one epoch

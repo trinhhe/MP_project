@@ -127,7 +127,7 @@ class ConvModel_Pre(BaseModel):
         """ Creates NNs. """
 
         print(f'Loading resnet_18 model...')
-        self.backbone = models.resnet18()  #hub.load('pytorch/vision:v0.9.0', 'inception_v3', pretrained=True)
+        self.backbone = models.resnet18()
 
         # train only the classifier layer
         for param in self.backbone.parameters():

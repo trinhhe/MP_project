@@ -9,7 +9,7 @@ from torch.utils.data.dataloader import default_collate
 import matplotlib.pyplot as plt
 
 from data.macros import cam_params
-from data.util import crop
+from data.util import crop, crop_new, pose_processing, augm_params, rgb_add_noise
 
 
 class H36MDataset(torch.utils.data.Dataset):
@@ -60,10 +60,10 @@ class H36MDataset(torch.utils.data.Dataset):
                         data_frame = int(splitext(basename(points_file))[0])
                         img_frame_id = data_frame + 1
 
-                        data.append({'subject': subject,
-                                     'sequence': action,
-                                     'cam_idx': cam_idx,
-                                     'img_file': join(img_dir, f'{img_frame_id:06d}.jpg'),
+                        data.append({    'subject': subject,
+                                        'sequence': action,
+                                         'cam_idx': cam_idx,
+                                        'img_file': join(img_dir, f'{img_frame_id:06d}.jpg'),
                                      'points_file': points_file})
         return data
 
@@ -88,54 +88,83 @@ class H36MDataset(torch.utils.data.Dataset):
         cam_idx = self.data[idx]['cam_idx']
         cv2.setNumThreads(0)
 
+        # Load img files
         assert exists(img_path)
         image = cv2.cvtColor(cv2.imread(img_path), cv2.COLOR_BGR2RGB)
-        points_dict = np.load(data_path)
+
+        # Load joints & keypoints (root_loc, center_img, scale_img, root_orient, betas, pose_body, pose_hand)
+        points_dict = dict(np.load(data_path))
+        # points_dict.files
+        # for keys, items in points_dict.items():
+        #    print(keys, items)
 
         # TODO: Hint: implement data augmentation
-        # Crop image
-        image_crop = crop(image, points_dict['center_img'], points_dict['scale_img'], self.img_size).astype(np.float32)
-        image_crop = (image_crop / 255.0 - self.mean) / self.std  # normalization
-        image_crop = np.clip(image_crop, a_min=0., a_max=1.)      # clip
+        # Crop image according to the supplied bounding box
+        # image_crop = crop(image, points_dict['center_img'], points_dict['scale_img'], self.img_size).astype(np.float32)
+
+        #  Take augmentation params (if mode = training)
+        flip, pn, rot, sc = augm_params(self)
+        # print(f'Flip/pn/rot/scale: {flip}, {pn}, {rot}, {sc}')
+
+        # 0.) Apply img augmentation (random; scale, rot, flip, pixel_noise)
+        image_crop, t_no_scale, h_rot = crop_new(image, points_dict['center_img'], sc * points_dict['scale_img'], self.img_size, rot=rot, flip=flip)
+        image_crop = (image_crop / 255.0 - self.mean) / self.std     # normalize
+        # image_crop = np.clip(image_crop, a_min=0., a_max=1.)       # clip
+        # print(f'Min/max/mean: {image_crop.min()}, {image_crop.max()}, {image_crop.mean()}')
         # plt.imshow(image_crop);plt.show()
 
-        # Apply augmentation only when training
-        if self.mode in ['train']:
-            np.random.seed(42)
 
-            # 1.) Add random Gaussian noise
-            mu, sigma = 0, 0.1         # set mean and standard deviation
-            gaussian_noise = np.random.normal(mu, sigma, size = image_crop.shape)
-            noise_factor = 3
-            image_crop = image_crop + noise_factor * gaussian_noise.astype('float32')
-            # plt.imshow(image_crop);plt.show()
+        # 1b.) Add pixel noise in a channel-wise manner
+        # Note: seems to be this method has different effect on the final img (more color change, than Gaussian noise)
+        image_crop = rgb_add_noise(image_crop, pn)
+        # print(f'Min/max/mean: {image_crop.min()}, {image_crop.max()}, {image_crop.mean()}')
+        # plt.imshow(image_crop);plt.show()
 
-            # 2.) Add random rotation
-            # rnd_flip = np.random.choice([0, 1], size=1)
-            # print(rnd_flip)
 
-            # if rnd_flip == True:
-            #    image_crop = np.flip(image_crop, axis=1)
-                # plt.imshow(image_crop);plt.show()
+        # 3.) Apply Pose augmentation (rot, flip)
+        full_pose = np.concatenate((points_dict['root_orient'], points_dict['pose_body'], points_dict['pose_hand']))
+        points_dict['root_orient'], points_dict['pose_body'], points_dict['pose_hand'] = pose_processing(full_pose, r=rot, f=flip)
+
+
+        # # 1.) Add random Gaussian noise to img
+        # mu, sigma = 0, 0.1  # set mean and standard deviation
+        # gaussian_noise = np.random.normal(mu, sigma, size=image_crop.shape)
+        # noise_factor = 0.5  # 3
+        #
+        # image_crop = image_crop + noise_factor * gaussian_noise.astype('float32')
+        # image_crop = np.clip(image_crop, a_min=0., a_max=1.)  # clip
+        # plt.imshow(image_crop);plt.show()
+
+        # # 2.) Add random rotation
+        # rnd_flip = np.random.choice([0, 1], size=1)
+        # # print(rnd_flip)
+        #
+        # if rnd_flip == True:
+        #     # Image
+        #     image_crop = np.flip(image_crop, axis=1).copy()
+        #     image_crop = (image_crop / 255.0 - self.mean) / self.std  # normalization
+        #     image_crop = np.clip(image_crop, a_min=0., a_max=1.)  # clip
 
         # -> PyTorch tensor format
         image_crop = image_crop.transpose([2, 0, 1])
 
 
         data_out = {'image_crop': image_crop,
-                    'root_loc': points_dict['root_loc'],
-                    'cx': np.array([cam_params[cam_idx]['center'][0]]),
-                    'cy': np.array([cam_params[cam_idx]['center'][1]]),
-                    'fx': np.array([cam_params[cam_idx]['focal_length'][0]]),
-                    'fy': np.array([cam_params[cam_idx]['focal_length'][1]]),
-                    'idx': idx,
-                    'file_id': self._get_file_id(idx)}
+                      'root_loc': points_dict['root_loc'],
+                            'cx': np.array([cam_params[cam_idx]['center'][0]]),
+                            'cy': np.array([cam_params[cam_idx]['center'][1]]),
+                            'fx': np.array([cam_params[cam_idx]['focal_length'][0]]),
+                            'fy': np.array([cam_params[cam_idx]['focal_length'][1]]),
+                           'idx': idx,
+                       'file_id': self._get_file_id(idx)}
 
         if self.mode in ['train', 'val']:
-            data_out.update({'betas': points_dict['betas'],
-                            'pose_body': points_dict['pose_body'],
-                            'pose_hand': points_dict['pose_hand'],
-                            'root_orient': points_dict['root_orient']})
+                                            # points_dict['root_orient']points_dict['pose_body']points_dict['pose_hand']
+            data_out.update({     'betas': points_dict['betas'],
+                              'pose_body': points_dict['pose_body'],
+                              'pose_hand': points_dict['pose_hand'],
+                            'root_orient': points_dict['root_orient']
+                            })
 
         if self.mode in ['val']:
             if image.shape[0] == 1000:
