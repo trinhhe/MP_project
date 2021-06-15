@@ -10,6 +10,7 @@ import matplotlib.pyplot as plt
 
 from data.macros import cam_params
 from data.util import crop, crop_new, pose_processing, augm_params, rgb_add_noise
+from torchtoolbox.transform import Cutout
 
 
 class H36MDataset(torch.utils.data.Dataset):
@@ -35,6 +36,10 @@ class H36MDataset(torch.utils.data.Dataset):
         self.img_size = img_size
 
         self.data = self._prepare_files()
+
+        # data augmentation params
+        self.use_gaussian_noise = True
+        self.use_cutout = True
 
     def _prepare_files(self):
         """ List data files. """
@@ -120,6 +125,13 @@ class H36MDataset(torch.utils.data.Dataset):
         # print(f'Min/max/mean: {image_crop.min()}, {image_crop.max()}, {image_crop.mean()}')
         # plt.imshow(image_crop);plt.show()
 
+        # 1c.) Crop off small image parts
+        # if self.use_cutout:
+        #     cutter = Cutout(p=1,
+        #                     scale=(0.001,0.01),
+        #                     ratio=(0.2, 1/0.2),
+        #                     inplace=False)
+        #     image_crop = cutter(image_crop)
 
         # 3.) Apply Pose augmentation (rot, flip)
         full_pose = np.concatenate((points_dict['root_orient'], points_dict['pose_body'], points_dict['pose_hand']))
