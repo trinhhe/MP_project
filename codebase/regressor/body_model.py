@@ -52,6 +52,7 @@ class BodyModel(nn.Module):
         if num_dmpls is not None:
             if path_dmpl is not None:
                 self.use_dmpl = True
+                print('Using dmpl...')
             else:
                 raise (ValueError('path_dmpl should be provided when using dmpls!'))
 
@@ -60,6 +61,7 @@ class BodyModel(nn.Module):
 
         # Mean codebase vertices
         if v_template is None:
+            print('Using v_template...')
             v_template = np.repeat(smpl_dict['v_template'][np.newaxis], batch_size, axis=0)
         else:
             v_template = np.repeat(v_template[np.newaxis], batch_size, axis=0)
@@ -74,6 +76,7 @@ class BodyModel(nn.Module):
             if 'dmpls' in params.keys():
                 num_dmpls = params['dmpls'].shape[1]
 
+        # beta params [6890, 3, 10]
         num_total_betas = smpl_dict['shapedirs'].shape[-1]
         if num_betas < 1:
             num_betas = num_total_betas
@@ -90,15 +93,16 @@ class BodyModel(nn.Module):
             self.register_parameter('expression', nn.Parameter(expression, requires_grad=True))
 
         if self.use_dmpl:
+            # dmpls [6890, 3, 8]
             dmpldirs = np.load(path_dmpl)['eigvec']
 
             dmpldirs = dmpldirs[:, :, :num_dmpls]
             self.register_buffer('dmpldirs', torch.tensor(dmpldirs, dtype=dtype))
 
-        # Regressor for joint locations given shape - 6890 x 24
+        # Regressor for joint locations given shape - [6890 x 24]
         self.register_buffer('J_regressor', torch.tensor(smpl_dict['J_regressor'], dtype=dtype))
 
-        # Pose blend shape basis: 6890 x 3 x 207, reshaped to 6890*30 x 207
+        # Pose blend shape basis: [6890 x 3 x 207], reshaped to [6890*30 x 207]
         if use_posedirs:
             posedirs = smpl_dict['posedirs']
             posedirs = posedirs.reshape([posedirs.shape[0] * 3, -1]).T
@@ -187,15 +191,19 @@ class BodyModel(nn.Module):
             'vtemplate and betas could not be used jointly.')
         assert self.model_type in ['smpl', 'smplh', 'smplx', 'mano', 'mano'], ValueError(
             'model_type should be in smpl/smplh/smplx/mano')
+
         if root_orient is None:  root_orient = self.root_orient
+
         if self.model_type in ['smplh', 'smpl']:
             if pose_body is None:  pose_body = self.pose_body
             if pose_hand is None:  pose_hand = self.pose_hand
+
         elif self.model_type == 'smplx':
             if pose_body is None:  pose_body = self.pose_body
             if pose_hand is None:  pose_hand = self.pose_hand
             if pose_jaw is None:  pose_jaw = self.pose_jaw
             if pose_eye is None:  pose_eye = self.pose_eye
+
         elif self.model_type in ['mano', 'mano']:
             if pose_hand is None:  pose_hand = self.pose_hand
 
@@ -219,9 +227,11 @@ class BodyModel(nn.Module):
             full_pose = torch.cat([root_orient, pose_hand], dim=1)
 
         if self.use_dmpl:
-            if dmpls is None: dmpls = self.dmpls
+            if dmpls is None:
+                dmpls = self.dmpls
             shape_components = torch.cat([betas, dmpls], dim=-1)
             shapedirs = torch.cat([self.shapedirs, self.dmpldirs], dim=-1)
+
         elif self.model_type == 'smplx':
             if expression is None: expression = self.expression
             shape_components = torch.cat([betas, expression], dim=-1)

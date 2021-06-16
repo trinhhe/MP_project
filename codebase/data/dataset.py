@@ -9,7 +9,7 @@ from torch.utils.data.dataloader import default_collate
 import matplotlib.pyplot as plt
 
 from data.macros import cam_params
-from data.util import crop, crop_new, pose_processing, augm_params, rgb_add_noise
+from data.util import crop, pose_processing, augm_params, rgb_add_noise, crop_new
 
 
 class H36MDataset(torch.utils.data.Dataset):
@@ -100,9 +100,10 @@ class H36MDataset(torch.utils.data.Dataset):
 
         # TODO: Hint: implement data augmentation
         # Crop image according to the supplied bounding box
-        # image_crop = crop(image, points_dict['center_img'], points_dict['scale_img'], self.img_size).astype(np.float32)
+        image_crop = crop(image, points_dict['center_img'], points_dict['scale_img'], self.img_size).astype(np.float32)
+        image_crop = (image_crop / 255.0 - self.mean) / self.std  # normalize
 
-        #  Take augmentation params (if mode = training)
+        # Take augmentation params (if mode = training)
         flip, pn, rot, sc = augm_params(self)
         # print(f'Flip/pn/rot/scale: {flip}, {pn}, {rot}, {sc}')
 
@@ -113,13 +114,11 @@ class H36MDataset(torch.utils.data.Dataset):
         # print(f'Min/max/mean: {image_crop.min()}, {image_crop.max()}, {image_crop.mean()}')
         # plt.imshow(image_crop);plt.show()
 
-
         # 1b.) Add pixel noise in a channel-wise manner
         # Note: seems to be this method has different effect on the final img (more color change, than Gaussian noise)
         image_crop = rgb_add_noise(image_crop, pn)
         # print(f'Min/max/mean: {image_crop.min()}, {image_crop.max()}, {image_crop.mean()}')
         # plt.imshow(image_crop);plt.show()
-
 
         # 3.) Apply Pose augmentation (rot, flip)
         full_pose = np.concatenate((points_dict['root_orient'], points_dict['pose_body'], points_dict['pose_hand']))
@@ -127,23 +126,24 @@ class H36MDataset(torch.utils.data.Dataset):
 
 
         # # 1.) Add random Gaussian noise to img
-        # mu, sigma = 0, 0.1  # set mean and standard deviation
-        # gaussian_noise = np.random.normal(mu, sigma, size=image_crop.shape)
-        # noise_factor = 0.5  # 3
+        mu, sigma = 0, 0.1  # set mean and standard deviation
+        gaussian_noise = np.random.normal(mu, sigma, size=image_crop.shape)
+        noise_factor = 0.5  # 3
+        image_crop = image_crop + noise_factor * gaussian_noise.astype('float32')
+        # # image_crop = np.clip(image_crop, a_min=0., a_max=1.)  # clip
+        # # plt.imshow(image_crop);plt.show()
         #
-        # image_crop = image_crop + noise_factor * gaussian_noise.astype('float32')
-        # image_crop = np.clip(image_crop, a_min=0., a_max=1.)  # clip
-        # plt.imshow(image_crop);plt.show()
-
-        # # 2.) Add random rotation
+        # # 2.) Add random flip
         # rnd_flip = np.random.choice([0, 1], size=1)
         # # print(rnd_flip)
         #
         # if rnd_flip == True:
         #     # Image
         #     image_crop = np.flip(image_crop, axis=1).copy()
-        #     image_crop = (image_crop / 255.0 - self.mean) / self.std  # normalization
-        #     image_crop = np.clip(image_crop, a_min=0., a_max=1.)  # clip
+        #     # image_crop = (image_crop / 255.0 - self.mean) / self.std  # normalization
+        #     # image_crop = np.clip(image_crop, a_min=0., a_max=1.)  # clip
+
+
 
         # -> PyTorch tensor format
         image_crop = image_crop.transpose([2, 0, 1])

@@ -63,6 +63,7 @@ def test(cfg, cfg_path, model_file):
 
     # init datasets
     test_data_loader = config.get_data_loader(cfg, mode='test')
+    print(f'Test data: {len(test_data_loader)}')
 
     # load pretrained modes if any
     load_dict = CheckpointIO(out_dir, model=model).safe_load(model_file)
@@ -90,8 +91,9 @@ def test(cfg, cfg_path, model_file):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Test pipeline.')
     parser.add_argument('--config', type=str, default='../configs/default.yaml', help='Path to a config file.')
-    parser.add_argument('--model_file', type=str, default=None, help='Overwrite the model path.')
+    parser.add_argument('--model_file', type=str, default='../tmp_out/logs/20210615-025849_[cluster_resnet18ft_allS_valonS6_old_img_augm_on]/model_best.pt', help='Load model for eval.')
     args = parser.parse_args()
+    print(args)
 
     key_list = ['root_loc', 'root_orient', 'betas', 'pose_body', 'pose_hand']
     test(config.load_config(args), args.config, args.model_file)

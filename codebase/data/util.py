@@ -19,9 +19,9 @@ def get_transform_new(center, scale, res, rot=0, flip=False):
     rot_rad = rot * np.pi / 180
     sn, cs = np.sin(rot_rad), np.cos(rot_rad)
     h_rot = int(np.ceil(h * np.abs(sn) + h * np.abs(cs)))
-    t2[0, :2] = [cs, -sn]
-    t2[1, :2] = [sn, cs]
-    t2[2, 2] = 1
+    t2[0,:2] = [cs, -sn]
+    t2[1,:2] = [sn, cs]
+    t2[2,2] = 1
     trans = (h_rot - h) / 2
     t2[:2, -1] = [trans + center[0] - x1, trans + center[1] - y1]
 

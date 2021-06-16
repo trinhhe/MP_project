@@ -14,6 +14,7 @@ class BaseModel(nn.Module, ABC):
 
         # parameters
         self.bm_path = cfg['data']['bm_path']
+        self.path_dmpl = cfg['data']['path_dmpl']
         self.in_ch = cfg['model'].get('in_ch', 3)
         self.out_ch = cfg['model'].get('out_ch', 70)
         self.img_resolution = cfg['data']['resy'], cfg['data']['resx']
@@ -23,7 +24,9 @@ class BaseModel(nn.Module, ABC):
 
         # body_model
         self.body_model = BodyModel(bm_path=self.bm_path,
-                                    num_betas=10,
+                                    # path_dmpl=self.path_dmpl,
+                                    # num_dmpls=8,
+                                    num_betas=10, # 10
                                     batch_size=self.batch_size).to(device=self.device)
 
     @staticmethod
@@ -126,12 +129,12 @@ class ConvModel_Pre(BaseModel):
     def _build_net(self):
         """ Creates NNs. """
 
-        print(f'Loading resnet_18 model...')
-        self.backbone = models.resnet18()
+        print(f'Loading resnet18 model...')
+        self.backbone = models.resnet18(pretrained=True)
 
-        # train only the classifier layer
+        # train only the classifier layer (False) or re-train the whole model (True)
         for param in self.backbone.parameters():
-            param.requires_grad = False
+            param.requires_grad = True
         fc_in = self.backbone.fc.in_features
         fc_out = self.backbone_f_len
         self.backbone.fc = nn.Linear(in_features=fc_in, out_features=fc_out)

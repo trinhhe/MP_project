@@ -35,7 +35,7 @@ def get_data_loader(cfg, mode='train'):
         subjects = cfg['data']['val_subjects'].split(',')
         batch_size = cfg['training']['batch_size']
     else:
-        subjects = ['S9', 'S11']
+        subjects = ['S9', 'S11']  # ['S9', 'S11']
         batch_size = 1
 
     dataset = H36MDataset(dataset_folder=cfg['data']['dataset_folder'],
@@ -48,7 +48,8 @@ def get_data_loader(cfg, mode='train'):
                              batch_size=batch_size,
                              num_workers=cfg['training'].get('num_workers', 0),
                              shuffle=mode == 'train',
-                             collate_fn=dataset.collate_fn)
+                             collate_fn=dataset.collate_fn,
+                             drop_last=False)
     return data_loader
 
 # Load the model
@@ -61,7 +62,10 @@ def get_optimizer(model, cfg):
     """ Create an optimizer. """
 
     if cfg['training']['optimizer']['name'] == 'SGD':
-        optimizer = optim.SGD(model.parameters(), lr=cfg['training']['optimizer'].get('lr', 1e-4))
+        # optimizer = optim.SGD(model.parameters(), lr=cfg['training']['optimizer'].get('lr', 1e-4))
+        optimizer = optim.SGD(model.parameters(), lr=cfg['training']['optimizer'].get('lr', 1e-4), momentum=0.9, weight_decay=5e-4, nesterov=True)
+    elif cfg['training']['optimizer']['name'] == 'ADAM':
+        optimizer = optim.Adam(model.parameters(), lr=cfg['training']['optimizer'].get('lr', 1e-4))
     else:
         raise Exception('Not supported.')
 

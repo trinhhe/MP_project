@@ -1,7 +1,7 @@
 import argparse
 from os.path import join
 
-# import torch
+import torch
 from tensorboardX import SummaryWriter
 # from torch.utils.tensorboard import SummaryWriter
 import torch.backends.cudnn as cudnn
@@ -10,6 +10,8 @@ from checkpoints import CheckpointIO
 import config
 from time import time
 from datetime import datetime
+import torch.utils.data as data_utils
+from torch.optim.swa_utils import AveragedModel, SWALR, update_bn
 
 import matplotlib.pyplot as plt
 import seaborn as sns
@@ -47,6 +49,9 @@ def train(cfg, model_file):
     train_data_loader = config.get_data_loader(cfg, mode='train')
     val_data_loader = config.get_data_loader(cfg, mode='val')
 
+    # limit dataset
+    # tr_10k = data_utils.Subset(train_data_loader, indices)
+
     # Check data
     print(f'Len training data: {len(train_data_loader)}')
     print(f'Len val data: {len(val_data_loader)}')
@@ -69,7 +74,7 @@ def train(cfg, model_file):
     #####################
     config.cond_mkdir(out_dir)
 
-    comment = '_[resnet18_S1_S6_new3_img_body_rnd_sc_rot_flip_ch_noise_b32]'  # '_[resnet18]'
+    comment = '_[resnet18_pret_S1_S6_new_old_img_pose_augm_debug_b32_adam_gaus]'  # '_[resnet18]'
     log_time = datetime.now().strftime("%Y%m%d-%H%M%S")
     logger = SummaryWriter(join(out_dir, 'logs', log_time + comment))
     print(f'Running experiment: {logger.file_writer.get_logdir()}')
@@ -77,8 +82,9 @@ def train(cfg, model_file):
 
     # training loop
     t_0 = time()
+    bad_epochs = 0
 
-    # while True:
+    # Run epochs
     for epoch in range(1, _args.epochs + 1):
         print('------------------------------------------')
         print(f'Epoch {epoch}/{_args.epochs} - Training running...')
@@ -87,6 +93,7 @@ def train(cfg, model_file):
         epoch_it += 1
         t_0_epoch = time()
 
+        # Run training
         for batch in train_data_loader:
             it += 1
             # batch['image_crop'].size(0)
@@ -115,7 +122,6 @@ def train(cfg, model_file):
                 print(f'Epoch {epoch}/{_args.epochs} - Validation running...')
                 print('------------------------------------------')
 
-                bad_epochs = 0
                 eval_dict, val_img = trainer.evaluate(val_data_loader)
 
                 # Run val, get eval loss metric
@@ -139,16 +145,16 @@ def train(cfg, model_file):
                     bad_epochs += 1
                     print(f'Eval did not improve, since {bad_epochs} epochs.')
 
-                if bad_epochs == _args.early_stop:
-                    print(f'Early stopping after {bad_epochs} epochs.')
-                    break
+                # step learning rate scheduler
+                exp_lr_scheduler.step(metric_val)
+
+        if bad_epochs == _args.early_stop:
+            print(f'Early stopping after {bad_epochs} epochs.')
+            break
 
         # time to finish one epoch
         time_elapsed = time() - t_0_epoch
         print(f'Epoch completed in {(time_elapsed // 60):.0f}m {(time_elapsed % 60):.0f}s.')
-
-    # step learning rate scheduler
-    exp_lr_scheduler.step(metric_val)
 
     time_elapsed = time() - t_0
     print(f'Training completed in {(time_elapsed // 60):.0f}m {(time_elapsed % 60):.0f}s.')
@@ -158,7 +164,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Train pipeline.')
     parser.add_argument('--config', type=str, default='../configs/default.yaml',  help='Path to a config file.')
     parser.add_argument('--model_file', type=str, default=None, help='Overwrite the model path.')
-    parser.add_argument('--epochs', type=int, default=20, metavar='N', help='number of epochs to train (default: 20)')
+    parser.add_argument('--epochs', type=int, default=30, metavar='N', help='number of epochs to train (default: 20)')
     parser.add_argument('--early-stop', type=int, default=5, metavar='N', help='number of iters to stop traing(default: 5)')
     _args = parser.parse_args()
     print(_args)
