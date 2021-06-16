@@ -83,6 +83,12 @@ def plot_gt_pred(model, data, mode, max_images=5):
     # eval
     model.eval()
 
+    # data.keys()
+    # data['file_id']
+    # data['betas']
+    # data['pose_body']
+    # data['pose_hand']
+
     # data to device
     for key in data.keys():
         if torch.is_tensor(data[key]):
@@ -168,6 +174,6 @@ if __name__ == '__main__':
     data_val.keys()
 
     # Plot images/gt & pred meshes
-    plot_gt_pred(model, data_train, mode='train', max_images=3)
-    plot_gt_pred(model, data_val, mode='val', max_images=3)
+    plot_gt_pred(model, data_train, mode='train', max_images=5)
+    plot_gt_pred(model, data_val, mode='val', max_images=5)
     print()

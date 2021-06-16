@@ -60,6 +60,7 @@ def train(cfg, model_file):
     # eval_dict, val_img = trainer.evaluate(items)
 
     # load pretrained model if any
+    # model_file = '../tmp_out/logs/20210616-135937_[resnet18_pret_S1_S6_revised_img_pose_augm_debug_b32_adam_gaus]/model_best.pt'
     load_dict = checkpoint_io.safe_load(model_file)
     epoch_it = load_dict.get('epoch_it', 0)
     it = load_dict.get('it', 0)
@@ -74,7 +75,7 @@ def train(cfg, model_file):
     #####################
     config.cond_mkdir(out_dir)
 
-    comment = '_[resnet18_pret_S1_S6_new_old_img_pose_augm_debug_b32_adam_gaus]'  # '_[resnet18]'
+    comment = '_[resnet18_pret_S1_S6_rep_crop_1_b32_img_pose_augm_gaus]'  # '_[resnet18]'
     log_time = datetime.now().strftime("%Y%m%d-%H%M%S")
     logger = SummaryWriter(join(out_dir, 'logs', log_time + comment))
     print(f'Running experiment: {logger.file_writer.get_logdir()}')

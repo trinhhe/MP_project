@@ -7,7 +7,7 @@ model:
   name: pre_trained # conv
 
 training:
-  print_every: 10     #
+  print_every: 50     #
   validate_every: 267 # 267   # 4963
   checkpoint_every: 0    # 5000
 
@@ -33,7 +33,7 @@ data:
   val_subjects: S6   # S6 S7,S8  # TODO:you could use this subjects for training as well
 
   # there is no need to modify the following parameters on Leonhard
-  dataset_folder: c:/Dataset/data/H36M_data_st  # E:/Datasets/project3/data/H36M_data_st   # /cluster/project/infk/hilliges/lectures/mp21/project3/data/H36M_data_st
-  img_folder: c:/Dataset/data/H36M  # E:/Datasets/project3/data/H36M           # /cluster/project/infk/hilliges/lectures/mp21/project3/data/H36M
+  dataset_folder: c:/Dataset/data/H36M_data_st  #: E:/Datasets/project3/data/H36M_data_st  #   /cluster/project/infk/hilliges/lectures/mp21/project3/data/H36M_data_st
+  img_folder: c:/Dataset/data/H36M         #E:/Datasets/project3/data/H36M # /cluster/project/infk/hilliges/lectures/mp21/project3/data/H36M
   bm_path: c:/Dataset/body_model/model.npz                                     # /cluster/project/infk/hilliges/lectures/mp21/project3/body_model/model.npz
   path_dmpl: E:/Datasets/project3/SMPL/dmpls/neutral/model.npz

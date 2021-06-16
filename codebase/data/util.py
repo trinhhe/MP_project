@@ -1,7 +1,8 @@
 import cv2
 import numpy as np
+import scipy
 
-
+# new
 def get_transform_new(center, scale, res, rot=0, flip=False):
     """Generate transformation matrix."""
     h = 200 * scale
@@ -40,7 +41,6 @@ def get_transform_new(center, scale, res, rot=0, flip=False):
 
     return np.dot(t4, t), t, h_rot
 
-
 def crop_new(img, center, scale, res, rot=0, flip=False):
     """Crop image according to the supplied bounding box."""
     t, t_no_scale, h_rot = get_transform_new(center, scale, res, rot, flip)
@@ -48,8 +48,8 @@ def crop_new(img, center, scale, res, rot=0, flip=False):
 
     return img_crop, t_no_scale, h_rot
 
-
-
+# -----------------------------------------------------
+# old
 def get_transform(center, scale, res):
     """Generate transformation matrix."""
     h = 200 * scale
@@ -61,7 +61,6 @@ def get_transform(center, scale, res):
     t[2, 2] = 1
     return t
 
-
 def transform(pt, center, scale, res, invert=0):
     """Transform pixel location to different reference."""
     t = get_transform(center, scale, res)
@@ -70,7 +69,6 @@ def transform(pt, center, scale, res, invert=0):
     new_pt = np.array([pt[0] - 1, pt[1] - 1, 1.]).T
     new_pt = np.dot(t, new_pt)
     return new_pt[:2].astype(int) + 1
-
 
 def crop(img, center, scale, res):
     """Crop image according to the supplied bounding box."""

@@ -100,48 +100,72 @@ class H36MDataset(torch.utils.data.Dataset):
 
         # TODO: Hint: implement data augmentation
         # Crop image according to the supplied bounding box
-        image_crop = crop(image, points_dict['center_img'], points_dict['scale_img'], self.img_size).astype(np.float32)
-        image_crop = (image_crop / 255.0 - self.mean) / self.std  # normalize
 
-        # Take augmentation params (if mode = training)
-        flip, pn, rot, sc = augm_params(self)
-        # print(f'Flip/pn/rot/scale: {flip}, {pn}, {rot}, {sc}')
+        crop_ver = 1
+        ###############
+        # Crop original
+        ###############
+        if crop_ver == 0:
+            image_crop = crop(image, points_dict['center_img'], points_dict['scale_img'], self.img_size).astype(np.float32)
+            image_crop = (image_crop / 255.0 - self.mean) / self.std  # normalize
+            # print(f'Min/max/mean: {image_crop.min()}, {image_crop.max()}, {image_crop.mean()}')
+            # plt.imshow(image_crop);plt.show()
 
-        # 0.) Apply img augmentation (random; scale, rot, flip, pixel_noise)
-        image_crop, t_no_scale, h_rot = crop_new(image, points_dict['center_img'], sc * points_dict['scale_img'], self.img_size, rot=rot, flip=flip)
-        image_crop = (image_crop / 255.0 - self.mean) / self.std     # normalize
-        # image_crop = np.clip(image_crop, a_min=0., a_max=1.)       # clip
-        # print(f'Min/max/mean: {image_crop.min()}, {image_crop.max()}, {image_crop.mean()}')
-        # plt.imshow(image_crop);plt.show()
+        ##########
+        # Crop new
+        ##########
+        if crop_ver == 1:
+            # Take augmentation params (if mode = training)
+            flip, pn, rot, sc = augm_params(self)
+            # print(f'Flip/pn/rot/scale: {flip}, {pn}, {rot}, {sc}')
 
-        # 1b.) Add pixel noise in a channel-wise manner
-        # Note: seems to be this method has different effect on the final img (more color change, than Gaussian noise)
-        image_crop = rgb_add_noise(image_crop, pn)
-        # print(f'Min/max/mean: {image_crop.min()}, {image_crop.max()}, {image_crop.mean()}')
-        # plt.imshow(image_crop);plt.show()
+            # 0.) Apply img augmentation (random; scale, rot, flip, pixel_noise)
+            image_crop, t_no_scale, h_rot = crop_new(image, points_dict['center_img'], sc * points_dict['scale_img'], self.img_size, rot=rot, flip=flip)
+            # image_crop = (image_crop / 255.0 - self.mean) / self.std     # normalize
+            # image_crop = np.clip(image_crop, a_min=0., a_max=1.)       # clip
+            # print(f'Min/max/mean: {image_crop.min()}, {image_crop.max()}, {image_crop.mean()}')
+            # plt.imshow(image_crop);plt.show()
 
-        # 3.) Apply Pose augmentation (rot, flip)
-        full_pose = np.concatenate((points_dict['root_orient'], points_dict['pose_body'], points_dict['pose_hand']))
-        points_dict['root_orient'], points_dict['pose_body'], points_dict['pose_hand'] = pose_processing(full_pose, r=rot, f=flip)
+            # 1b.) Add pixel noise in a channel-wise manner
+            # Note: seems to be this method has different effect on the final img (more color change, than Gaussian noise)
+            image_crop = rgb_add_noise(image_crop, pn)
+            image_crop = (image_crop / 255.0 - self.mean) / self.std
+            # print(f'Min/max/mean: {image_crop.min()}, {image_crop.max()}, {image_crop.mean()}')
+            # plt.imshow(image_crop);plt.show()
+
+            # 3.) Apply Pose augmentation (rot, flip)
+            # rot=0
+            full_pose = np.concatenate((points_dict['root_orient'], points_dict['pose_body'], points_dict['pose_hand']))
+            points_dict['root_orient'], points_dict['pose_body'], points_dict['pose_hand'] = pose_processing(full_pose, r=rot, f=flip)
+
+            # 4.) Add random Gaussian noise to pose
+            # mu, sigma = 0, 0.1  # set mean and standard deviation
+            # noise_factor = 1
+            # gaussian_noise = np.random.normal(mu, sigma, size=points_dict['pose_body'].shape)
+            # points_dict['pose_body'] = points_dict['pose_body'] + noise_factor * gaussian_noise.astype('float32')
+            # gaussian_noise = np.random.normal(mu, sigma, size=points_dict['pose_hand'].shape)
+            # points_dict['pose_hand'] = points_dict['pose_hand'] + noise_factor * gaussian_noise.astype('float32')
 
 
-        # # 1.) Add random Gaussian noise to img
-        mu, sigma = 0, 0.1  # set mean and standard deviation
-        gaussian_noise = np.random.normal(mu, sigma, size=image_crop.shape)
-        noise_factor = 0.5  # 3
-        image_crop = image_crop + noise_factor * gaussian_noise.astype('float32')
-        # # image_crop = np.clip(image_crop, a_min=0., a_max=1.)  # clip
-        # # plt.imshow(image_crop);plt.show()
-        #
-        # # 2.) Add random flip
-        # rnd_flip = np.random.choice([0, 1], size=1)
-        # # print(rnd_flip)
-        #
-        # if rnd_flip == True:
-        #     # Image
-        #     image_crop = np.flip(image_crop, axis=1).copy()
-        #     # image_crop = (image_crop / 255.0 - self.mean) / self.std  # normalization
-        #     # image_crop = np.clip(image_crop, a_min=0., a_max=1.)  # clip
+
+        if crop_ver == 1:
+            # 1.) Add random Gaussian noise to img
+            mu, sigma = 0, 0.1  # set mean and standard deviation
+            noise_factor = 0.5  # 3
+            gaussian_noise = np.random.normal(mu, sigma, size=image_crop.shape)
+            image_crop = image_crop + noise_factor * gaussian_noise.astype('float32')
+            # # image_crop = np.clip(image_crop, a_min=0., a_max=1.)  # clip
+            # # plt.imshow(image_crop);plt.show()
+            #
+            # 2.) Add random flip
+            # rnd_flip = np.random.choice([0, 1], size=1)
+            # print(rnd_flip)
+
+            # if rnd_flip == True:
+            #     # Image
+            #     image_crop = np.flip(image_crop, axis=1).copy()
+            #     # image_crop = (image_crop / 255.0 - self.mean) / self.std  # normalization
+            #     # image_crop = np.clip(image_crop, a_min=0., a_max=1.)  # clip
 
 
 
