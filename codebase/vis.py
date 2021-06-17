@@ -4,6 +4,7 @@ import torch
 from regressor.util import proj_vertices
 from collections import defaultdict
 import numpy as np
+from checkpoints import CheckpointIO
 
 import matplotlib.pyplot as plt
 import seaborn as sns
@@ -87,6 +88,7 @@ def plot_gt_pred(model, data, mode, max_images=5):
     for key in data.keys():
         if torch.is_tensor(data[key]):
             data[key] = data[key].to(device='cuda')
+            # data[key] = data[key].to(device='cpu')
 
     # predict keypoints
     prediction = model.forward(data)
@@ -140,7 +142,7 @@ def plot_gt_pred(model, data, mode, max_images=5):
     eval_images = eval_images.view(eval_images.shape[0], -1, 3).permute(2, 0, 1)
 
     plt.figure(figsize=(20, 12))
-    plt.imshow(eval_images.permute([1, 2, 0]));
+    plt.imshow(eval_images.permute([1, 2, 0]))
     plt.axis('off')
     plt.show()
 
@@ -149,11 +151,21 @@ def plot_gt_pred(model, data, mode, max_images=5):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Train pipeline.')
     parser.add_argument('--config', type=str, default='../configs/default.yaml',  help='Path to a config file.')
+    parser.add_argument('--model_file', type=str, default=None, help='Overwrite the model path.')
+
     _args = parser.parse_args()
     print(_args)
 
     # load model
     model, cfg = train(config.load_config(_args))
+    modelfile = _args.model_file
+    out_dir = cfg['out_dir']
+    optimizer = config.get_optimizer(model, cfg)
+    checkpoint_io = CheckpointIO(out_dir, model=model, optimizer=optimizer)
+    load_dict = checkpoint_io.safe_load(modelfile)
+    metric_val_best = load_dict.get('loss_val_best', float('inf'))
+    print(model, f'\n\nTotal number of parameters: {sum(p.numel() for p in model.parameters()):d}')
+    print(f'Current best validation metric: {metric_val_best:.8f}')
 
     # load ds
     train_data_loader = config.get_data_loader(cfg, mode='train')

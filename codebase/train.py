@@ -1,5 +1,6 @@
 import argparse
 from os.path import join
+import numpy as np
 
 # import torch
 from tensorboardX import SummaryWriter
@@ -69,7 +70,7 @@ def train(cfg, model_file):
     #####################
     config.cond_mkdir(out_dir)
 
-    comment = '_[resnet18_pretrained_da]'  # '_[resnet18]'
+    comment = '_[resnet50_hmr_da_adam]'  # '_[resnet18]'
     log_time = datetime.now().strftime("%Y%m%d-%H%M%S")
     logger = SummaryWriter(join(out_dir, 'logs', log_time + comment))
     print(f'Running experiment: {logger.file_writer.get_logdir()}')

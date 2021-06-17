@@ -98,7 +98,7 @@ class BodyModel(nn.Module):
         # Regressor for joint locations given shape - 6890 x 24
         self.register_buffer('J_regressor', torch.tensor(smpl_dict['J_regressor'], dtype=dtype))
 
-        # Pose blend shape basis: 6890 x 3 x 207, reshaped to 6890*30 x 207
+        # Pose blend shape basis: 6890 x 3 x 207, reshaped to 6890*3 x 207
         if use_posedirs:
             posedirs = smpl_dict['posedirs']
             posedirs = posedirs.reshape([posedirs.shape[0] * 3, -1]).T
