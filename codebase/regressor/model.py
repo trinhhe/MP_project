@@ -62,6 +62,35 @@ class BaseModel(nn.Module, ABC):
         vertices = body.v
         return vertices
 
+    def get_joints(self, root_loc, root_orient, betas, pose_body, pose_hand):
+        """ Fwd pass through the parametric body model to obtain 3D joint vertices.
+
+        Args:
+               root_loc (torch.Tensor): Root location (B, 3).
+            root_orient (torch.Tensor): Root orientation (B, 3).
+                  betas (torch.Tensor): Shape coefficients (B, 10).
+              pose_body (torch.Tensor): Body joint rotations (B, 21*3).
+              pose_hand (torch.Tensor): Hand joint rotations (B, 2*3).
+
+        Returns:
+            mesh vertices (torch.Tensor): (B, J, 3)
+        """
+        # print(f'batchsize: {self.batch_size}')
+        # print(f'rootloc{root_loc.shape}')
+        body = self.body_model(trans=root_loc,
+                               root_orient=root_orient,
+                               pose_body=pose_body,
+                               pose_hand=pose_hand,
+                               betas=betas)
+
+        joints = body.Jtr
+        v_a_pose = body.v_a_pose
+        f = body.f
+        abs_bone_transforms = body.abs_bone_transforms
+        bone_transforms = body.bone_transforms
+        betas = body.betas
+        return joints, v_a_pose, f, abs_bone_transforms, bone_transforms, betas
+
 class ParameterRegressor(nn.Module):
 
     def __init__(self, feature_count):
@@ -70,7 +99,7 @@ class ParameterRegressor(nn.Module):
         # In HMR implementation (https://github.com/MandyMo/pytorch_HMR) they initialize with mean_theta (all smpl parameters concatened)
         # Dunno how to get them without downloading their file, so I just get some random numbers between -0.3;0.3 and increase iterations
         # init_theta = torch.from_numpy((np.random.random_sample(82) * (0.3+0.3) - 0.3).astype('float32'))
-        mean_params = h5py.File("../../configs/neutral_smpl_mean_params.h5")
+        mean_params = h5py.File("../configs/neutral_smpl_mean_params.h5", mode="r")
         init_theta = np.zeros(82, dtype = np.float)
         init_theta[0:72] = mean_params['pose'][:]
         init_theta[72:] = mean_params['shape'][:]
@@ -95,7 +124,7 @@ class ParameterRegressor(nn.Module):
         pred_pos_body = pred_theta[:,3:66]
         pred_pos_hand = pred_theta[:,66:72]
         pred_beta = pred_theta[:,72:]        
-        print(self.init_theta)
+        
         for i in range(iterations):
             input_c = torch.cat([input, pred_theta], 1)
             input_c = self.fc1(input_c)
@@ -108,7 +137,6 @@ class ParameterRegressor(nn.Module):
             pred_beta = self.dec_beta(input_c) + pred_beta
 
         return pred_root_orient, pred_pos_body, pred_pos_hand, pred_beta
-        # return self.init_theta
 
 class Identity(nn.Module):
     def __init__(self):
@@ -240,5 +268,5 @@ if __name__ == '__main__':
     # print(init_pose.shape)
     # print(mean_params.keys())
 
-    # mean_values = h5py.File("/home/henry/Downloads/neutral_smpl_mean_params.h5")
-    # print(mean_values['pose'].shape)
+    mean_values = h5py.File("../configs/neutral_smpl_mean_params.h5")
+    print(mean_values['pose'].shape)

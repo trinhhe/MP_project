@@ -163,4 +163,6 @@ if __name__ == '__main__':
     print(_args)
 
     train(config.load_config(_args), _args.model_file)
+    # cfg = config.load_config(_args)
+    # model = config.get_model(cfg)
    
