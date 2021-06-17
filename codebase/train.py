@@ -104,7 +104,7 @@ def train(cfg, model_file):
             if print_every > 0 and (it % print_every) == 0:
                 # print(f'[Epoch {epoch_it:02d}] it={it:05d}, loss={loss:.8f}')
                 print(f'[Epoch {epoch_it:02d}] it={it:05d}, losses:')
-                for k,v in loss_dict.values():
+                for k,v in loss_dict.items():
                     print(f'{k}: {v}. ', end='')
 
             # Save checkpoint
