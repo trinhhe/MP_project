@@ -34,6 +34,8 @@ class BaseModel(nn.Module, ABC):
             model = ConvModel(cfg)
         elif model_name == 'pre_trained':
             model = ConvModel_Pre(cfg)
+        elif model_name == 'hmr_pre':
+            model = HMR_pre(cfg)
         else:
             raise Exception(f'Model `{model_name}` is not defined.')
         return model

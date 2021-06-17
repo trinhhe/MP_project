@@ -104,8 +104,8 @@ def train(cfg, model_file):
             # Print output
             if print_every > 0 and (it % print_every) == 0:
                 # print(f'[Epoch {epoch_it:02d}] it={it:05d}, loss={loss:.8f}')
-                print(f'[Epoch {epoch_it:02d}] it={it:05d}, losses:', end='')
-                for k,v in loss_dict.items():
+                print(f'[Epoch {epoch_it:02d}] it={it:05d}, losses: ', end='')
+                for k, v in loss_dict.items():
                     print(f'{k}: {v}. ', end='')
                 print('\n')
 
@@ -162,7 +162,7 @@ def train(cfg, model_file):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Train pipeline.')
-    parser.add_argument('--config', type=str, default='../configs/default.yaml',  help='Path to a config file.')
+    parser.add_argument('--config', type=str, default='../configs/default_desktop.yaml',  help='Path to a config file.')
     parser.add_argument('--model_file', type=str, default=None, help='Overwrite the model path.')
     parser.add_argument('--epochs', type=int, default=20, metavar='N', help='number of epochs to train (default: 20)')
     parser.add_argument('--early-stop', type=int, default=5, metavar='N', help='number of iters to stop traing(default: 5)')
