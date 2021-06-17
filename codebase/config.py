@@ -52,6 +52,8 @@ def get_data_loader(cfg, mode='train'):
     return data_loader
 
 # Load the model
+
+
 def get_model(cfg):
     model = BaseModel.create_model(cfg)
     return model.to(device=cfg['device'])
@@ -61,9 +63,11 @@ def get_optimizer(model, cfg):
     """ Create an optimizer. """
 
     if cfg['training']['optimizer']['name'] == 'SGD':
-        optimizer = optim.SGD(model.parameters(), lr=cfg['training']['optimizer'].get('lr', 1e-4))
-    elif  cfg['training']['optimizer']['name'] == 'ADAM':
-        optimizer = optim.Adam(model.parameters(), lr=cfg['training']['optimizer'].get('lr', 1e-4))
+        optimizer = optim.SGD(model.parameters(),
+                              lr=cfg['training']['optimizer'].get('lr', 1e-4))
+    elif cfg['training']['optimizer']['name'] == 'ADAM':
+        optimizer = optim.Adam(
+            model.parameters(), lr=cfg['training']['optimizer'].get('lr', 1e-4))
     else:
         raise Exception('Not supported.')
 

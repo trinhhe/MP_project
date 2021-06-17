@@ -11,7 +11,6 @@ import seaborn as sns
 sns.set()
 
 
-
 def proj_verts(points, images, fx, fy, cx, cy):
     """ Projects 3D points onto image plane.
 
@@ -38,17 +37,19 @@ def proj_verts(points, images, fx, fy, cx, cy):
     y = (y+0.5).int().long()
 
     plt.figure()
-    plt.scatter(x[1].cpu().numpy(),y[1].cpu().numpy())
+    plt.scatter(x[1].cpu().numpy(), y[1].cpu().numpy())
 
     # discard invalid pixels
     valid = ~((x < 0) | (y < 0) | (x >= W) | (y >= H))
-    idx = (W * y + x) + W * H * torch.arange(0, B, device=device, dtype=torch.long).view(B, 1)
+    idx = (W * y + x) + W * H * torch.arange(0, B,
+                                             device=device, dtype=torch.long).view(B, 1)
     idx = idx.view(-1)[valid.view(-1)]
 
     # mark selected pixels
     rendered_img = torch.clone(images).permute(0, 2, 3, 1)  # -> (B, H, W, 3)
     rendered_img = rendered_img.contiguous().view(-1, 3)
-    rendered_img[idx] = torch.IntTensor([0, 0, 255]).to(device=device, dtype=rendered_img.dtype)
+    rendered_img[idx] = torch.IntTensor([0, 0, 255]).to(
+        device=device, dtype=rendered_img.dtype)
     rendered_img = rendered_img.view(B, H, W, 3).contiguous()
 
     rendered_img = rendered_img.permute(0, 3, 1, 2)
@@ -117,12 +118,13 @@ def plot_gt_pred(model, data, mode, max_images=5):
                                data['cx'], data['cy'])
 
         pred_images = proj_verts(pred_vertices,  data_plot,
-                                data['fx'], data['fy'],
-                                data['cx'], data['cy'])
+                                 data['fx'], data['fy'],
+                                 data['cx'], data['cy'])
 
         images = torch.cat((gt_images, pred_images), dim=2)
 
-    loss_dict = {'v2v_l2': torch.pow(gt_vertices - pred_vertices, 2).mean().item()}
+    loss_dict = {'v2v_l2': torch.pow(
+        gt_vertices - pred_vertices, 2).mean().item()}
     # eval_step_dict, imgs = compute_val_loss(prediction, model, data, ret_images)
 
     if eval_images is None:
@@ -139,7 +141,8 @@ def plot_gt_pred(model, data, mode, max_images=5):
 
     # concatenate images along the W dimension
     eval_images = eval_images.permute(2, 0, 3, 1).contiguous()
-    eval_images = eval_images.view(eval_images.shape[0], -1, 3).permute(2, 0, 1)
+    eval_images = eval_images.view(
+        eval_images.shape[0], -1, 3).permute(2, 0, 1)
 
     plt.figure(figsize=(20, 12))
     plt.imshow(eval_images.permute([1, 2, 0]))
@@ -147,11 +150,12 @@ def plot_gt_pred(model, data, mode, max_images=5):
     plt.show()
 
 
-
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Train pipeline.')
-    parser.add_argument('--config', type=str, default='../configs/default.yaml',  help='Path to a config file.')
-    parser.add_argument('--model_file', type=str, default=None, help='Overwrite the model path.')
+    parser.add_argument(
+        '--config', type=str, default='../configs/default.yaml',  help='Path to a config file.')
+    parser.add_argument('--model_file', type=str,
+                        default=None, help='Overwrite the model path.')
 
     _args = parser.parse_args()
     print(_args)
@@ -160,26 +164,30 @@ if __name__ == '__main__':
     model, cfg = train(config.load_config(_args))
     modelfile = _args.model_file
     out_dir = cfg['out_dir']
-    optimizer = config.get_optimizer(model, cfg)
-    checkpoint_io = CheckpointIO(out_dir, model=model, optimizer=optimizer)
-    load_dict = checkpoint_io.safe_load(modelfile)
+    load_dict = CheckpointIO(out_dir, model=model).safe_load(modelfile)
     metric_val_best = load_dict.get('loss_val_best', float('inf'))
-    print(model, f'\n\nTotal number of parameters: {sum(p.numel() for p in model.parameters()):d}')
     print(f'Current best validation metric: {metric_val_best:.8f}')
+
+    # print(load_dict.keys())
+    # print(load_dict.items())
 
     # load ds
     train_data_loader = config.get_data_loader(cfg, mode='train')
     val_data_loader = config.get_data_loader(cfg, mode='val')
+    # test_data_loader = config.get_data_loader(cfg, mode='test')
     print(f'Len training data: {len(train_data_loader)}')
     print(f'Len val data: {len(val_data_loader)}')
 
-    # take some examples
+    # # take some examples
     data_train = next(iter(train_data_loader))
     data_train.keys()
     data_val = next(iter(val_data_loader))
     data_val.keys()
-
-    # Plot images/gt & pred meshes
-    plot_gt_pred(model, data_train, mode='train', max_images=3)
+    # data_test = next(iter(test_data_loader))
+    # print(data_test.keys())
+    # # Plot images/gt & pred meshes
+    # plot_gt_pred(model, data_train, mode='train', max_images=3)
     plot_gt_pred(model, data_val, mode='val', max_images=3)
+    # plot_gt_pred(model, data_test, mode='val', max_images=3)
+
     print()
