@@ -153,9 +153,9 @@ class ConvTrainer(BaseTrainer):
         prediction = self.model.forward(data)
 
         gt_vertices = self._compute_gt_vertices(data)
-        gt_joints = data['pose_body']
+        gt_joints = self._compute_gt_joints(data)
         pred_vertices = prediction['vertices']
-        pred_joints = prediction['pose_body']
+        pred_joints = self._compute_gt_joints(prediction)
 
         vert_diff = gt_vertices - pred_vertices
         joint_diff = gt_joints - pred_joints
@@ -167,10 +167,10 @@ class ConvTrainer(BaseTrainer):
             loss_dict['v2v_l1'] = torch.abs(vert_diff).mean()
         if self.loss_cfg.get('v2v_l2', False):
             loss_dict['v2v_l2'] = torch.pow(vert_diff, 2).mean()
-        # if self.loss_cfg.get('j2j_l1', False):
-        #     loss_dict['j2j_l1'] = torch.abs(joint_diff).mean()
-        # if self.loss_cfg.get('j2j_l2', False):
-        #     loss_dict['j2j_l2'] = torch.pow(joint_diff, 2).mean()
+        if self.loss_cfg.get('j2j_l1', False):
+            loss_dict['j2j_l1'] = torch.abs(joint_diff).mean()
+        if self.loss_cfg.get('j2j_l2', False):
+            loss_dict['j2j_l2'] = torch.pow(joint_diff, 2).mean()
         if self.loss_cfg.get('RL_l1', False):
             loss_dict['RL_l1'] = self.reprojection_loss(self.model, data, prediction)
 
@@ -182,6 +182,14 @@ class ConvTrainer(BaseTrainer):
     @torch.no_grad()
     def _compute_gt_vertices(self, data):
         return self.model.get_vertices(data['root_loc'],
+                                       data['root_orient'],
+                                       data['betas'],
+                                       data['pose_body'],
+                                       data['pose_hand'])
+
+    @torch.no_grad()
+    def _compute_gt_joints(self, data):
+        return self.model.get_joints(data['root_loc'],
                                        data['root_orient'],
                                        data['betas'],
                                        data['pose_body'],
