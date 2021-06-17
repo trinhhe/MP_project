@@ -62,6 +62,8 @@ def get_optimizer(model, cfg):
 
     if cfg['training']['optimizer']['name'] == 'SGD':
         optimizer = optim.SGD(model.parameters(), lr=cfg['training']['optimizer'].get('lr', 1e-4))
+    elif cfg['training']['optimizer']['name'] == 'ADAM':
+        optimizer = optim.Adam(model.parameters(), lr=cfg['training']['optimizer'].get('lr', 1e-4))
     else:
         raise Exception('Not supported.')
 

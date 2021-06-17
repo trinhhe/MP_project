@@ -6,6 +6,7 @@ import numpy as np
 from tqdm import tqdm
 
 from regressor.util import proj_vertices
+from .losses import ReprojectionLoss
 
 
 class BaseTrainer(ABC):
@@ -16,6 +17,7 @@ class BaseTrainer(ABC):
         self.optimizer = optimizer
         self.vis_dir = vis_dir
         self.cfg = cfg
+        self.reprojection_loss = ReprojectionLoss()
 
         self.device = cfg['device']
         self.loss_cfg = cfg['loss']
@@ -151,14 +153,27 @@ class ConvTrainer(BaseTrainer):
         prediction = self.model.forward(data)
 
         gt_vertices = self._compute_gt_vertices(data)
+        gt_joints = data['pose_body']
         pred_vertices = prediction['vertices']
+        pred_joints = prediction['pose_body']
 
         vert_diff = gt_vertices - pred_vertices
+        joint_diff = gt_joints - pred_joints
+        # print(gt_vertices.shape, pred_vertices.shape)
+        # print(data.shape, prediction[''].shape)
+
         loss_dict = {}
         if self.loss_cfg.get('v2v_l1', False):
             loss_dict['v2v_l1'] = torch.abs(vert_diff).mean()
         if self.loss_cfg.get('v2v_l2', False):
             loss_dict['v2v_l2'] = torch.pow(vert_diff, 2).mean()
+        # if self.loss_cfg.get('j2j_l1', False):
+        #     loss_dict['j2j_l1'] = torch.abs(joint_diff).mean()
+        # if self.loss_cfg.get('j2j_l2', False):
+        #     loss_dict['j2j_l2'] = torch.pow(joint_diff, 2).mean()
+        if self.loss_cfg.get('RL_l1', False):
+            loss_dict['RL_l1'] = self.reprojection_loss(self.model, data, prediction)
+
 
         loss_dict['total_loss'] = sum(self.loss_cfg.get(f'{key}_w', 1.) * val for key, val in loss_dict.items())
 

@@ -60,6 +60,29 @@ class BaseModel(nn.Module, ABC):
         vertices = body.v
         return vertices
 
+    def get_joints(self, root_loc, root_orient, betas, pose_body, pose_hand):
+        """ Fwd pass through the parametric body model to obtain mesh vertices.
+
+        Args:
+               root_loc (torch.Tensor): Root location (B, 10).
+            root_orient (torch.Tensor): Root orientation (B, 3).
+                  betas (torch.Tensor): Shape coefficients (B, 10).
+              pose_body (torch.Tensor): Body joint rotations (B, 21*3).
+              pose_hand (torch.Tensor): Hand joint rotations (B, 2*3).
+
+        Returns:
+            mesh vertices (torch.Tensor): (B, 6890, 3)
+        """
+
+        body = self.body_model(trans=root_loc,
+                               root_orient=root_orient,
+                               pose_body=pose_body,
+                               pose_hand=pose_hand,
+                               betas=betas)
+
+        joints = body.Jtr
+        return joints
+
 
 class ConvModel(BaseModel):
     def __init__(self, cfg):
@@ -127,7 +150,7 @@ class ConvModel_Pre(BaseModel):
         """ Creates NNs. """
 
         print(f'Loading resnet_18 model...')
-        self.backbone = models.resnet18()
+        self.backbone = models.resnet18(pretrained=True)
 
         # train only the classifier layer
         for param in self.backbone.parameters():

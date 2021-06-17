@@ -69,7 +69,7 @@ def train(cfg, model_file):
     #####################
     config.cond_mkdir(out_dir)
 
-    comment = '_[resnet18_S1_S6_new3_img_body_rnd_sc_rot_flip_ch_noise_b32]'  # '_[resnet18]'
+    comment = '_[resnet18_pretrained_da]'  # '_[resnet18]'
     log_time = datetime.now().strftime("%Y%m%d-%H%M%S")
     logger = SummaryWriter(join(out_dir, 'logs', log_time + comment))
     print(f'Running experiment: {logger.file_writer.get_logdir()}')
@@ -93,7 +93,8 @@ def train(cfg, model_file):
 
             # Run trainer, get train loss metrics
             loss_dict = trainer.train_step(batch)
-            loss = loss_dict['total_loss']
+            # loss = loss_dict['total_loss']
+            loss = loss_dict['v2v_l1'] + loss_dict['v2v_l2']
 
             # Log train loss metric (v2v_l1 / v2v_l2 / total_loss)
             for k, v in loss_dict.items():
@@ -101,7 +102,10 @@ def train(cfg, model_file):
 
             # Print output
             if print_every > 0 and (it % print_every) == 0:
-                print(f'[Epoch {epoch_it:02d}] it={it:05d}, loss={loss:.8f}')
+                # print(f'[Epoch {epoch_it:02d}] it={it:05d}, loss={loss:.8f}')
+                print(f'[Epoch {epoch_it:02d}] it={it:05d}, losses:')
+                for k,v in loss_dict.values():
+                    print(f'{k}: {v}. ', end='')
 
             # Save checkpoint
             if checkpoint_every != 0 and (it % checkpoint_every) == 0:
