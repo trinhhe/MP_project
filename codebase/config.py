@@ -1,6 +1,7 @@
 import os
 import yaml
 from torch.utils.data import DataLoader
+from torch.utils.data import Subset
 
 from data.dataset import H36MDataset
 from regressor.model import BaseModel
@@ -42,9 +43,17 @@ def get_data_loader(cfg, mode='train'):
                           img_folder=cfg['data']['img_folder'],
                           subjects=subjects,
                           mode=mode,
-                          img_size=(512, 512))
+                          img_size=(512, 512))#,
+                          # downsample=cfg['data']['downsample'],
+                          # ds_ratio=cfg['data']['ds_ratio'])
 
-    data_loader = DataLoader(dataset,
+    if cfg['data'].get('downsample', False):
+        denominator = cfg['data'].get('ds_ratio', 0.2)
+        indices = range(0, len(dataset), int(1 / denominator))
+        subset = Subset(dataset, indices=indices)
+
+    data_loader = DataLoader(subset if cfg['data'].get('downsample', False) else dataset,
+                             # subset if cfg['data'].get('downsample', False) and mode == 'train' else dataset,
                              batch_size=batch_size,
                              num_workers=cfg['training'].get('num_workers', 0),
                              shuffle=mode == 'train',

@@ -159,6 +159,7 @@ class ConvTrainer(BaseTrainer):
 
         vert_diff = gt_vertices - pred_vertices
         joint_diff = gt_joints - pred_joints
+
         # print(gt_vertices.shape, pred_vertices.shape)
         # print(data.shape, prediction[''].shape)
 
@@ -187,7 +188,7 @@ class ConvTrainer(BaseTrainer):
                                        data['pose_body'],
                                        data['pose_hand'])
 
-    @torch.no_grad()
+    # @torch.no_grad()
     def _compute_gt_joints(self, data):
         return self.model.get_joints(data['root_loc'],
                                        data['root_orient'],

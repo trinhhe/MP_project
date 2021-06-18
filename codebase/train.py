@@ -95,7 +95,7 @@ def train(cfg, model_file):
             # Run trainer, get train loss metrics
             loss_dict = trainer.train_step(batch)
             # loss = loss_dict['total_loss']
-            loss = loss_dict['v2v_l1'] + loss_dict['v2v_l2']
+            # loss = loss_dict['v2v_l1'] + loss_dict['v2v_l2']
 
             # Log train loss metric (v2v_l1 / v2v_l2 / total_loss)
             for k, v in loss_dict.items():
@@ -107,7 +107,7 @@ def train(cfg, model_file):
                 print(f'[Epoch {epoch_it:02d}] it={it:05d}, losses: ', end='')
                 for k, v in loss_dict.items():
                     print(f'{k}: {v}. ', end='')
-                print('\n')
+                print('')
 
             # Save checkpoint
             if checkpoint_every != 0 and (it % checkpoint_every) == 0:

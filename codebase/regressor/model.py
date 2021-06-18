@@ -4,6 +4,7 @@ from torch import nn
 from .body_model import BodyModel
 from torch import hub
 import torchvision.models as models
+import torch.nn.functional as F
 import numpy as np
 import h5py
 
@@ -235,9 +236,9 @@ class ParameterRegressor(nn.Module):
 
         for i in range(iterations):
             input_c = torch.cat([input, pred_theta], 1)
-            input_c = self.fc1(input_c)
+            input_c = F.relu(self.fc1(input_c))
             input_c = self.drop1(input_c)
-            input_c = self.fc2(input_c)
+            input_c = F.relu(self.fc2(input_c))
             input_c = self.drop2(input_c)
             pred_root_orient = self.dec_root_orient(input_c) + pred_root_orient
             pred_pos_body = self.dec_pos_body(input_c) + pred_pos_body
