@@ -9,8 +9,7 @@ from torch.utils.data.dataloader import default_collate
 import matplotlib.pyplot as plt
 
 from data.macros import cam_params
-from data.util import crop, crop_new, pose_processing, augm_params, rgb_add_noise
-from torchtoolbox.transform import Cutout
+from data.util import crop, pose_processing, augm_params, rgb_add_noise, crop_new
 
 
 class H36MDataset(torch.utils.data.Dataset):
@@ -36,10 +35,6 @@ class H36MDataset(torch.utils.data.Dataset):
         self.img_size = img_size
 
         self.data = self._prepare_files()
-
-        # data augmentation params
-        self.use_gaussian_noise = True
-        self.use_cutout = True
 
     def _prepare_files(self):
         """ List data files. """
@@ -99,63 +94,83 @@ class H36MDataset(torch.utils.data.Dataset):
 
         # Load joints & keypoints (root_loc, center_img, scale_img, root_orient, betas, pose_body, pose_hand)
         points_dict = dict(np.load(data_path))
-        # points_dict.files
+
+        # Normalize betas
+        # points_dict['betas'] = (points_dict['betas'] - points_dict['betas'].mean()) / points_dict['betas'].std()
+        # points_dict
         # for keys, items in points_dict.items():
-        #    print(keys, items)
+        #   print(keys, items)
 
         # TODO: Hint: implement data augmentation
         # Crop image according to the supplied bounding box
-        # image_crop = crop(image, points_dict['center_img'], points_dict['scale_img'], self.img_size).astype(np.float32)
 
-        #  Take augmentation params (if mode = training)
-        flip, pn, rot, sc = augm_params(self)
-        # print(f'Flip/pn/rot/scale: {flip}, {pn}, {rot}, {sc}')
+        # Set crop version to use and data augment on/off
+        crop_ver = 1
+        augment = True
+        # print(f'Dataset using crop ver{crop_ver}, augment is {augment}...')
+        ###############
+        # Crop original
+        ###############
+        if crop_ver == 0:
+            image_crop = crop(image, points_dict['center_img'], points_dict['scale_img'], self.img_size).astype(np.float32)
+            image_crop = (image_crop / 255.0 - self.mean) / self.std  # normalize
+            # print(f'Min/max/mean: {image_crop.min()}, {image_crop.max()}, {image_crop.mean()}')
+            # plt.imshow(image_crop);plt.show()
 
-        # 0.) Apply img augmentation (random; scale, rot, flip, pixel_noise)
-        image_crop, t_no_scale, h_rot = crop_new(image, points_dict['center_img'], sc * points_dict['scale_img'], self.img_size, rot=rot, flip=flip)
-        image_crop = (image_crop / 255.0 - self.mean) / self.std     # normalize
-        # image_crop = np.clip(image_crop, a_min=0., a_max=1.)       # clip
-        # print(f'Min/max/mean: {image_crop.min()}, {image_crop.max()}, {image_crop.mean()}')
-        # plt.imshow(image_crop);plt.show()
+            if augment == 1:
+                # 1.) Add random Gaussian noise to img
+                mu, sigma = 0, 0.1  # set mean and standard deviation
+                noise_factor = 0.5  # 3
+                gaussian_noise = np.random.normal(mu, sigma, size=image_crop.shape)
+                image_crop = image_crop + noise_factor * gaussian_noise.astype('float32')
+                # plt.imshow(image_crop);plt.show()
 
+                # 2.) Add random flip
+                rnd_flip = np.random.choice([0, 1], size=1)
+                # print(rnd_flip)
 
-        # 1b.) Add pixel noise in a channel-wise manner
-        # Note: seems to be this method has different effect on the final img (more color change, than Gaussian noise)
-        image_crop = rgb_add_noise(image_crop, pn)
-        # print(f'Min/max/mean: {image_crop.min()}, {image_crop.max()}, {image_crop.mean()}')
-        # plt.imshow(image_crop);plt.show()
-
-        # 1c.) Crop off small image parts
-        # if self.use_cutout:
-        #     cutter = Cutout(p=1,
-        #                     scale=(0.001,0.01),
-        #                     ratio=(0.2, 1/0.2),
-        #                     inplace=False)
-        #     image_crop = cutter(image_crop)
-
-        # 3.) Apply Pose augmentation (rot, flip)
-        full_pose = np.concatenate((points_dict['root_orient'], points_dict['pose_body'], points_dict['pose_hand']))
-        points_dict['root_orient'], points_dict['pose_body'], points_dict['pose_hand'] = pose_processing(full_pose, r=rot, f=flip)
+                if rnd_flip == True:
+                    image_crop = np.flip(image_crop, axis=1).copy()
 
 
-        # # 1.) Add random Gaussian noise to img
-        # mu, sigma = 0, 0.1  # set mean and standard deviation
-        # gaussian_noise = np.random.normal(mu, sigma, size=image_crop.shape)
-        # noise_factor = 0.5  # 3
-        #
-        # image_crop = image_crop + noise_factor * gaussian_noise.astype('float32')
-        # image_crop = np.clip(image_crop, a_min=0., a_max=1.)  # clip
-        # plt.imshow(image_crop);plt.show()
+        ##########
+        # Crop new
+        ##########
+        if crop_ver == 1:
+            if augment == 0:
+                sc = 1
+                rot = 0
+                flip = False
+                image_crop, t_no_scale, h_rot = crop_new(image, points_dict['center_img'], sc * points_dict['scale_img'], self.img_size, rot=rot, flip=flip)
+                image_crop = (image_crop / 255.0 - self.mean) / self.std  # normalize
+                # print(f'Min/max/mean: {image_crop.min()}, {image_crop.max()}, {image_crop.mean()}')
+                # plt.imshow(image_crop);plt.show
 
-        # # 2.) Add random rotation
-        # rnd_flip = np.random.choice([0, 1], size=1)
-        # # print(rnd_flip)
-        #
-        # if rnd_flip == True:
-        #     # Image
-        #     image_crop = np.flip(image_crop, axis=1).copy()
-        #     image_crop = (image_crop / 255.0 - self.mean) / self.std  # normalization
-        #     image_crop = np.clip(image_crop, a_min=0., a_max=1.)  # clip
+            elif augment == 1:
+                flip, pn, rot, sc = augm_params(self)
+                # print(f'Flip/pn/rot/scale: {flip}, {pn}, {rot}, {sc}')
+                image_crop, t_no_scale, h_rot = crop_new(image, points_dict['center_img'], sc * points_dict['scale_img'], self.img_size, rot=rot, flip=flip)
+
+                # 1b.) Add pixel noise in a channel-wise manner
+                image_crop = rgb_add_noise(image_crop, pn)
+                image_crop = (image_crop / 255.0 - self.mean) / self.std
+                # print(f'Min/max/mean: {image_crop.min()}, {image_crop.max()}, {image_crop.mean()}')
+                # plt.imshow(image_crop);plt.show()
+
+                # 3.) Apply Pose augmentation (rot, flip)
+                if self.mode == 'train':
+                    full_pose = np.concatenate((points_dict['root_orient'], points_dict['pose_body'], points_dict['pose_hand']))
+                    points_dict['root_orient'], points_dict['pose_body'], points_dict['pose_hand'] = pose_processing(full_pose, r=rot, f=flip)
+
+                    # 4.) Add random Gaussian noise to pose/beta
+                    mu, sigma = 0, 0.1  # set mean and standard deviation
+                    noise_factor = 0.5
+                    # gaussian_noise = np.random.normal(mu, sigma, size=points_dict['betas'].shape)
+                    # points_dict['betas'] = points_dict['betas'] + noise_factor * gaussian_noise.astype('float32')
+                    # gaussian_noise = np.random.normal(mu, sigma, size=points_dict['pose_body'].shape)
+                    # points_dict['pose_body'] = points_dict['pose_body'] + noise_factor * gaussian_noise.astype('float32')
+                    # gaussian_noise = np.random.normal(mu, sigma, size=points_dict['pose_hand'].shape)
+                    # points_dict['pose_hand'] = points_dict['pose_hand'] + noise_factor * gaussian_noise.astype('float32')
 
         # -> PyTorch tensor format
         image_crop = image_crop.transpose([2, 0, 1])

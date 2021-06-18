@@ -26,7 +26,7 @@ def train(cfg, model_file):
     model_file = model_file if model_file is not None else 'model_best.pt'  # continue from last best checkpoint
     print_every = cfg['training']['print_every']
     checkpoint_every = cfg['training']['checkpoint_every']
-    validate_every = cfg['training']['validate_every']
+    # validate_every = cfg['training']['validate_every']
     model_selection_metric = cfg['training'].get('model_selection_metric', 'v2v_l2')
 
     # Load model
@@ -51,6 +51,7 @@ def train(cfg, model_file):
     # Check data
     print(f'Len training data: {len(train_data_loader)}')
     print(f'Len val data: {len(val_data_loader)}')
+    validate_every = checkpoint_every = len(train_data_loader)
     # items = next(iter(train_data_loader))
     # items.keys()
     # eval_dict, val_img = trainer.evaluate(items)
