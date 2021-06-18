@@ -2,13 +2,13 @@ from abc import ABC
 import torch
 from torch import nn
 import torch.nn.functional as F
-from body_model import BodyModel
-from LinearModel import LinearModel
+from .body_model import BodyModel
+from .LinearModel import LinearModel
 from torch import hub
 import torchvision.models as models
 import numpy as np
 import h5py
-import util
+from .util import batch_rodrigues
 import sys
 
 
@@ -103,7 +103,7 @@ class ParameterRegressor(nn.Module):
     def __init__(self, feature_count):
         super().__init__()
         # self.batch_size = batch_size
-        # In HMR implementation (https://github.com/MandyMo/pytorch_HMR) they initialize with mean_theta (all smpl parameters concatened)
+        # In HMR implementation (https://github.com/MandyMo/pytorch_HMR) and https://github.com/nkolot/SPIN/blob/master/models/hmr.py they initialize with mean_theta (all smpl parameters concatened)
         # init_theta = torch.from_numpy((np.random.random_sample(82) * (0.3+0.3) - 0.3).astype('float32'))
         mean_params = h5py.File(
             "../configs/neutral_smpl_mean_params.h5", mode="r")
@@ -180,7 +180,7 @@ class ConvModel_Pre(BaseModel):
         # no classifier, Iterative regressor takes the output of resnet which is average pooled
         num_ftrs = self.backbone.fc.in_features
         self.backbone.fc = Identity()
-
+        
         self.regressor = ParameterRegressor(num_ftrs)
 
     def forward(self, input_data):
@@ -330,7 +330,7 @@ class Discriminator(nn.Module):
         # cams, poses, shapes = thetas[:, :3], thetas[:, 3:75], thetas[:, 75:]
         poses, shapes = thetas[:, 0:72], thetas[:, 72:]
         shape_disc_value = self.shape_discriminator(shapes)
-        rotate_matrixs = util.batch_rodrigues(poses.contiguous().view(-1, 3)).view(-1, 24, 9)[:, 1:, :] # We don't consider the root orient
+        rotate_matrixs = batch_rodrigues(poses.contiguous().view(-1, 3)).view(-1, 24, 9)[:, 1:, :] # We don't consider the root orient
         pose_disc_value, pose_inter_disc_value = self.pose_discriminator(rotate_matrixs)
         full_pose_disc_value = self.full_pose_discriminator(pose_inter_disc_value.contiguous().view(batch_size, -1))
         return torch.cat((pose_disc_value, full_pose_disc_value, shape_disc_value), 1)
@@ -397,7 +397,7 @@ class ConvModel(BaseModel):
 
 
 if __name__ == '__main__':
-    # x = torch.rand(10, 500).float()
+    x = torch.rand(10, 500).float()
     # net = ParameterRegressor(x.shape[1])
     # a, b, c, d = net(x, 2)
     # print(a.shape)

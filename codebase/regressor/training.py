@@ -172,6 +172,15 @@ class ConvTrainer(BaseTrainer):
                                        data['pose_body'],
                                        data['pose_hand'])
 
+    @torch.no_grad()
+    def _compute_gt_joints(self, data):
+        return self.model.get_joints(data['root_loc'],
+                                       data['root_orient'],
+                                       data['betas'],
+                                       data['pose_body'],
+                                       data['pose_hand'])
+
+
     def compute_val_loss(self, prediction, data, ret_images=False):
         gt_vertices = self._compute_gt_vertices(data)
         pred_vertices = prediction['vertices']
