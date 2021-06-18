@@ -52,7 +52,6 @@ class BodyModel(nn.Module):
         if num_dmpls is not None:
             if path_dmpl is not None:
                 self.use_dmpl = True
-                print('Using dmpl...')
             else:
                 raise (ValueError('path_dmpl should be provided when using dmpls!'))
 
@@ -61,7 +60,6 @@ class BodyModel(nn.Module):
 
         # Mean codebase vertices
         if v_template is None:
-            print('Using v_template...')
             v_template = np.repeat(smpl_dict['v_template'][np.newaxis], batch_size, axis=0)
         else:
             v_template = np.repeat(v_template[np.newaxis], batch_size, axis=0)

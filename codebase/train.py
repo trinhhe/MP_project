@@ -75,7 +75,7 @@ def train(cfg, model_file):
     #####################
     config.cond_mkdir(out_dir)
 
-    comment = '_[resnet18_pret_S1_S6_rep_crop_1_b32_img_pose_augm_gaus]'  # '_[resnet18]'
+    comment = '_[resnet18_S1_S6_crop_1_b32_img_pose_augm_on_resample0.2]'  # '_[resnet18]'
     log_time = datetime.now().strftime("%Y%m%d-%H%M%S")
     logger = SummaryWriter(join(out_dir, 'logs', log_time + comment))
     print(f'Running experiment: {logger.file_writer.get_logdir()}')
