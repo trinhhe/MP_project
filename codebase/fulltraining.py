@@ -50,11 +50,11 @@ def train(cfg, gen_file, disc_file):
     disc_checkpoint = CheckpointIO(out_dir, model=discriminator, optimizer=disc_opt)
     # init datasets
     train_data_loader = config.get_data_loader(cfg, mode='train')
-    val_data_loader = config.get_data_loader(cfg, mode='val')
+    # val_data_loader = config.get_data_loader(cfg, mode='val')
 
     # Check data
     print(f'Len training data: {len(train_data_loader)}')
-    print(f'Len val data: {len(val_data_loader)}')
+    # print(f'Len val data: {len(val_data_loader)}')
     # items = next(iter(train_data_loader))
     # items.keys()
     # eval_dict, val_img = trainer.evaluate(items)
@@ -65,7 +65,7 @@ def train(cfg, gen_file, disc_file):
     load_dict = disc_checkpoint.safe_load(disc_file)
     epoch_it = load_dict.get('epoch_it', 0)
     it = load_dict.get('it', 0)
-    metric_val_best = load_dict.get('loss_val_best', float('inf'))
+    loss_best = load_dict.get('loss_best', float('inf'))
 
     # prepare loggers
     # print(generator, f'\n\nTotal number of parameters: {sum(p.numel() for p in generator.parameters()):d}')
@@ -74,13 +74,13 @@ def train(cfg, gen_file, disc_file):
     print(f'\n\nTotal number of parameters: {sum(p.numel() for p in generator.parameters()):d}')
     print("---------------------------------------------------------------------")
     print(f'\n\nTotal number of parameters: {sum(p.numel() for p in discriminator.parameters()):d}')
-    print(f'Current best validation metric: {metric_val_best:.8f}')
+    print(f'Current best loss (v2v_l2): {loss_best:.8f}')
 
     #####################
     # Name the experiment
     #####################
     config.cond_mkdir(out_dir)
-    comment = '_[resnet50_dataaug_batch12_GAN]'  # '_[resnet18]'
+    comment = '_[resnet50_batch20_GAN_fulltraining]'  # '_[resnet18]'
     log_time = datetime.now().strftime("%Y%m%d-%H%M%S")
     logger = SummaryWriter(join(out_dir, 'logs', log_time + comment))
     print(f'Running experiment: {logger.file_writer.get_logdir()}')
@@ -103,7 +103,7 @@ def train(cfg, gen_file, disc_file):
 
             # Run trainer, get train loss metrics
             loss_dict = trainer.train_step(batch)
-            loss = loss_dict['gen_loss']
+            loss = loss_dict['v2v_l2']
 
             # Log train loss metric (v2v_l1 / v2v_l2 / total_loss)
             for k, v in loss_dict.items():
@@ -115,53 +115,22 @@ def train(cfg, gen_file, disc_file):
 
             # Save checkpoint
             if checkpoint_every != 0 and (it % checkpoint_every) == 0:
-                print('Saving checkpoint...')
-                gen_checkpoint.save(f'model_{it:d}.pt', epoch_it=epoch_it, it=it, loss_val_best=metric_val_best)
+                print('Checkpoint...')
 
-            # Run validation
-            if validate_every > 0 and (it % validate_every) == 0 and it > 0:
-                print()
-                print('------------------------------------------')
-                print(f'Epoch {epoch}/{_args.epochs} - Validation running...')
-                print('------------------------------------------')
+                if loss < loss_best:
+                    loss_best = loss
+                    print(f'New best generator(loss {loss_best:.8f})')
+                    gen_checkpoint.save(f'{logger.logdir}/generator_best.pt', epoch_it=epoch_it, it=it, loss_best=loss_best)
+                    disc_checkpoint.save(f'{logger.logdir}/discriminator_best.pt', epoch_it=epoch_it, it=it, loss_best=loss_best)
 
-                bad_epochs = 0
-                eval_dict, val_img = trainer.evaluate(val_data_loader)
-
-                # Run val, get eval loss metric
-                metric_val = eval_dict[model_selection_metric]
-                print(f'Validation metric ({model_selection_metric}): {metric_val:.8f}')
-
-                # Log eval images
-                if val_img is not None:
-                    logger.add_image(f'val/renderings', val_img, it)
-
-                # Log eval score
-                for k, v in eval_dict.items():
-                    logger.add_scalar(f'val/{k}', v, it)
-
-                if metric_val < metric_val_best:
-                    metric_val_best = metric_val
-                    print(f'New best generator(loss {metric_val_best:.8f})')
-                    gen_checkpoint.save(f'{logger.logdir}/generator_best.pt', epoch_it=epoch_it, it=it, loss_val_best=metric_val_best)
-                    disc_checkpoint.save(f'{logger.logdir}/discriminator_best.pt', epoch_it=epoch_it, it=it, loss_val_best=metric_val_best)
-
-                    bad_epochs = 0
-                else:
-                    bad_epochs += 1
-                    print(f'Eval did not improve, since {bad_epochs} epochs.')
-
-                if bad_epochs == _args.early_stop:
-                    print(f'Early stopping after {bad_epochs} epochs.')
-                    break
 
         # time to finish one epoch
         time_elapsed = time() - t_0_epoch
         print(f'Epoch completed in {(time_elapsed // 60):.0f}m {(time_elapsed % 60):.0f}s.')
 
     # step learning rate scheduler
-    gen_exp_lr_scheduler.step(metric_val)
-    disc_exp_lr_scheduler.step(metric_val)
+    gen_exp_lr_scheduler.step(loss)
+    disc_exp_lr_scheduler.step(loss)
 
     time_elapsed = time() - t_0
     print(f'Training completed in {(time_elapsed // 60):.0f}m {(time_elapsed % 60):.0f}s.')

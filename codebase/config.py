@@ -36,8 +36,8 @@ def get_data_loader(cfg, mode='train'):
         subjects = cfg['data']['val_subjects'].split(',')
         batch_size = cfg['training']['batch_size']
     else:
-        # subjects = ['S9', 'S11']
-        subjects = ['S9']
+        subjects = ['S9', 'S11']
+        # subjects = ['S9']
         batch_size = 1
 
     dataset = H36MDataset(dataset_folder=cfg['data']['dataset_folder'],

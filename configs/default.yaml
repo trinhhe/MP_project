@@ -8,9 +8,9 @@ model:
   name: pre_trained # conv
 
 training:
-  print_every: 5
-  validate_every: 60 # 5000
-  checkpoint_every: 0 # 5000
+  print_every: 100
+  validate_every: 0 # 5000
+  checkpoint_every: 4000 # 5000
 
   optimizer:
     # name: SGD
@@ -21,7 +21,7 @@ training:
     name1: ADAM # discriminator optimizer
     lr1: 0.001
 
-  batch_size: 5
+  batch_size: 20
   num_workers: 4
 
 loss:
@@ -50,20 +50,20 @@ data:
   dataset: base # dataset type
   resy: 256 # 256
   resx: 256 # 256
-  train_subjects: S1,S5,S6,S7
-  val_subjects: S7, S8  # TODO:you could use this subjects for training as well
+  train_subjects: S1,S5,S6,S7,S8
+  val_subjects: S8  # TODO:you could use this subjects for training as well
   downsample: True
-  ds_ratio: 1 # 0.2 # take every 5th value
+  ds_ratio: 0.2 # 0.2 # take every 5th value
 
   # there is no need to modify the following parameters on Leonhard
-  # dataset_folder: /cluster/project/infk/hilliges/lectures/mp21/project3/data/H36M_data_st
-  # img_folder: /cluster/project/infk/hilliges/lectures/mp21/project3/data/H36M
-  # bm_path: /cluster/project/infk/hilliges/lectures/mp21/project3/body_model/model.npz
+  dataset_folder: /cluster/project/infk/hilliges/lectures/mp21/project3/data/H36M_data_st
+  img_folder: /cluster/project/infk/hilliges/lectures/mp21/project3/data/H36M
+  bm_path: /cluster/project/infk/hilliges/lectures/mp21/project3/body_model/model.npz
 
   # dataset_folder: /home/henry/Documents/ETH_MA/MachinePerception/project3/H36M_data_st
   # img_folder: /home/henry/Documents/ETH_MA/MachinePerception/project3/H36M
   # bm_path: /home/henry/Documents/ETH_MA/MachinePerception/project3/body_model/model.npz
 
-  img_folder: D:\Bibliothek\MP\project3\data\H36M
-  dataset_folder: D:\Bibliothek\MP\project3\data\H36M_data_st
-  bm_path: D:\Bibliothek\MP\project3\body_model\model.npz
+  # img_folder: D:\Bibliothek\MP\project3\data\H36M
+  # dataset_folder: D:\Bibliothek\MP\project3\data\H36M_data_st
+  # bm_path: D:\Bibliothek\MP\project3\body_model\model.npz
