@@ -80,7 +80,7 @@ def train(cfg, gen_file, disc_file):
     # Name the experiment
     #####################
     config.cond_mkdir(out_dir)
-    comment = '_[resnet50_batch20_GAN_fulltraining]'  # '_[resnet18]'
+    comment = '_[resnet50_batch20_GAN_fulltraining_2djoint_0.5downsample]'  # '_[resnet18]'
     log_time = datetime.now().strftime("%Y%m%d-%H%M%S")
     logger = SummaryWriter(join(out_dir, 'logs', log_time + comment))
     print(f'Running experiment: {logger.file_writer.get_logdir()}')
@@ -115,13 +115,13 @@ def train(cfg, gen_file, disc_file):
 
             # Save checkpoint
             if checkpoint_every != 0 and (it % checkpoint_every) == 0:
-                print('Checkpoint...')
+                # print('Checkpoint...')
 
                 if loss < loss_best:
                     loss_best = loss
                     print(f'New best generator(loss {loss_best:.8f})')
-                    gen_checkpoint.save(f'{logger.logdir}/generator_best.pt', epoch_it=epoch_it, it=it, loss_best=loss_best)
-                    disc_checkpoint.save(f'{logger.logdir}/discriminator_best.pt', epoch_it=epoch_it, it=it, loss_best=loss_best)
+                    gen_checkpoint.save(f'{logger.logdir}/{it:05d}_generator_best.pt', epoch_it=epoch_it, it=it, loss_best=loss_best)
+                    disc_checkpoint.save(f'{logger.logdir}/{it:05d}_discriminator_best.pt', epoch_it=epoch_it, it=it, loss_best=loss_best)
 
 
         # time to finish one epoch

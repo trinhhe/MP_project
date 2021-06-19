@@ -8,9 +8,9 @@ model:
   name: pre_trained # conv
 
 training:
-  print_every: 200
+  print_every: 400
   validate_every: 0 # 5000
-  checkpoint_every: 200 # 5000
+  checkpoint_every: 400 # 5000
 
   optimizer:
     # name: SGD
@@ -31,8 +31,8 @@ loss:
   v2v_l2: True
   v2v_l2_w: 15.0
 
-  kp_3d_l2: True # 3D joint position loss L2
-  kp_3d_l2_w: 6.0
+  kp_2d_l1: True # 2D joint position loss L1
+  kp_2d_l1_w: 6.0
 
   kp_3d_l2: True # 3D joint position loss L2
   kp_3d_l2_w: 6.0
@@ -44,10 +44,10 @@ loss:
   pose_l2_w: 4.0
 
   gen_disc_l2: True # Adversarial loss function for encoder/generator
-  gen_disc_l2_w: 3
+  gen_disc_l2_w: 2
 
   disc_loss: True
-  disc_loss_w: 1
+  disc_loss_w: 3
 
 data:
   dataset: base # dataset type
@@ -56,7 +56,7 @@ data:
   train_subjects: S1,S5,S6,S7,S8
   val_subjects: S8  # TODO:you could use this subjects for training as well
   downsample: True
-  ds_ratio: 0.2 # 0.2 # take every 5th value
+  ds_ratio: 0.5 # 0.2 # take every 5th value
 
   # there is no need to modify the following parameters on Leonhard
   # dataset_folder: /cluster/project/infk/hilliges/lectures/mp21/project3/data/H36M_data_st
