@@ -52,7 +52,8 @@ def get_data_loader(cfg, mode='train'):
         indices = range(0, len(dataset), int(1 / denominator))
         subset = Subset(dataset, indices=indices)
 
-    data_loader = DataLoader(subset if cfg['data'].get('downsample', False) else dataset,
+    data_loader = DataLoader(subset if cfg['data'].get('downsample', False) and mode == 'train' else dataset,
+                             # subset if cfg['data'].get('downsample', False) else dataset,
                              # subset if cfg['data'].get('downsample', False) and mode == 'train' else dataset,
                              batch_size=batch_size,
                              num_workers=cfg['training'].get('num_workers', 0),

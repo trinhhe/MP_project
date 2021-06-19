@@ -109,6 +109,7 @@ def plot_gt_pred(model, data, mode, max_images=5):
     if ret_images:
         if mode == 'train':
             data_plot = data['image_crop']
+            # data_plot = data['image']
         elif mode == 'val':
             data_plot = data['image']
 
@@ -180,6 +181,6 @@ if __name__ == '__main__':
     data_val.keys()
 
     # Plot images/gt & pred meshes
-    plot_gt_pred(model, data_train, mode='train', max_images=3)
+    # plot_gt_pred(model, data_train, mode='train', max_images=3)
     plot_gt_pred(model, data_val, mode='val', max_images=3)
     print()

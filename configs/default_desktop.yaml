@@ -22,8 +22,8 @@ training:
   num_workers: 8
 
 loss:
-  v2v_l1: False  # loss type
-  v2v_l1_w: 1.0  # corresponding weight
+  v2v_l1: True  # loss type
+  v2v_l1_w: 0.0  # corresponding weight
 
   v2v_l2: True
   v2v_l2_w: 1.0
@@ -31,20 +31,26 @@ loss:
   j2j_l1: False
   j2j_l1_w: 1.0
 
-  j2j_l2: False
+  j2j_l2: True
   j2j_l2_w: 5.0
 
   p2p_l1: False
   p2p_l1_w: 1.0
 
-  p2p_l2: True
-  p2p_l2_w: 4.0
+  p2p_l2: False
+  p2p_l2_w: 1.0
 
-  r2r_l2: True
+  r2r_l2: False
   r2r_l2_w: 0.5
+
+  b2b_l2: True
+  b2b_l2_w: 0.2
 
   RL_l1: False
   RL_l1_w: 0.1
+
+  chamfer_loss: False
+  chamfer_loss_w: 1.0
 
 #  RL_l2: True
 #  RL_l2_w: 1.0

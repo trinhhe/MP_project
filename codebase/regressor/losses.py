@@ -75,3 +75,38 @@ class ReprojectionLoss(nn.Module):
         #     return body['Jtr']
         proj_joints_diff = gt_joints_proj - pred_joints_proj
         return torch.abs(proj_joints_diff).mean()
+
+
+def chamferLoss(V1, V2, average=True):
+    """ Source: https://github.com/nitinagarwal/QuadricLoss/blob/master/utils/losses.py
+    Chamfer loss between two 3D point sets
+    Input: Vin = input vertices = batchSize x N1 x 3
+           Vout = recon vertices = batchSize x N2 x 3
+    Output: Loss: chamfer loss. (sum of losses from both pointsets)
+            indices: indices corresponding to Vin which minimize chamfer distance
+    """
+
+    x, y = V1, V2
+    bs, num_points, points_dim = x.size()
+    xx = torch.bmm(x, x.transpose(2, 1))
+    yy = torch.bmm(y, y.transpose(2, 1))
+    zz = torch.bmm(x, y.transpose(2, 1))
+    diag_ind = torch.arange(0, num_points).type(torch.cuda.LongTensor)
+    rx = xx[:, diag_ind, diag_ind].unsqueeze(1).expand_as(xx)
+    ry = yy[:, diag_ind, diag_ind].unsqueeze(1).expand_as(yy)
+    P = (rx.transpose(2, 1) + ry - 2 * zz)
+
+    dis1, idx1 = P.min(2)
+    dis2, idx2 = P.min(1)
+    # dis2, idx2 = P.min(2)
+
+    if average:
+        # average across all points and batches
+        Loss = (torch.mean(dis1) + torch.mean(dis2))
+    else:
+        # average across all points only
+        dis1 = torch.sum(dis1, 1)
+        dis2 = torch.sum(dis2, 1)
+        Loss = (torch.mean(dis1 + dis2))
+
+    return Loss, idx1, idx2

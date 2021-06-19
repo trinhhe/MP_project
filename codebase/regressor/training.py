@@ -7,6 +7,7 @@ from tqdm import tqdm
 
 from regressor.util import proj_vertices
 from .losses import ReprojectionLoss
+# from .losses import chamferLoss
 
 
 class BaseTrainer(ABC):
@@ -18,6 +19,7 @@ class BaseTrainer(ABC):
         self.vis_dir = vis_dir
         self.cfg = cfg
         self.reprojection_loss = ReprojectionLoss()
+        # self.chamfer_loss = ChamferDistance()
 
         self.device = cfg['device']
         self.loss_cfg = cfg['loss']
@@ -164,6 +166,7 @@ class ConvTrainer(BaseTrainer):
         joint_diff = gt_joints - pred_joints
         pose_diff = gt_pose - pred_pose
         root_diff = data['root_orient'] - prediction['root_orient']
+        betas_diff = data['betas'] - prediction['betas']
 
         # print(gt_vertices.shape, pred_vertices.shape)
         # print(data.shape, prediction[''].shape)
@@ -183,6 +186,10 @@ class ConvTrainer(BaseTrainer):
             loss_dict['p2p_l2'] = torch.pow(pose_diff, 2).mean()
         if self.loss_cfg.get('r2r_l2', False):
             loss_dict['r2r_l2'] = torch.pow(root_diff, 2).mean()
+        if self.loss_cfg.get('b2b_l2', False):
+            loss_dict['b2b_l2'] = torch.pow(betas_diff, 2).mean()
+        # if self.loss_cfg.get('chamfer_loss', False):
+        #     loss_dict['chamfer_loss'] = chamferLoss(gt_vertices, pred_vertices)
         if self.loss_cfg.get('RL_l1', False):
             loss_dict['RL_l1'] = self.reprojection_loss(self.model, data, prediction)
 
@@ -199,7 +206,7 @@ class ConvTrainer(BaseTrainer):
                                        data['pose_body'],
                                        data['pose_hand'])
 
-    # @torch.no_grad()
+    @torch.no_grad()
     def _compute_gt_joints(self, data):
         return self.model.get_joints(data['root_loc'],
                                        data['root_orient'],
