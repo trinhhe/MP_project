@@ -5,7 +5,7 @@ import torch
 import numpy as np
 from tqdm import tqdm
 
-from regressor.util import proj_vertices, batch_rodrigues, align_by_pelvis
+from regressor.util import proj_vertices, batch_rodrigues, align_by_pelvis, proj_3D_to_2D
 # from util import proj_vertices
 class BaseTrainer(ABC):
     """ Base trainer class. """
@@ -328,16 +328,19 @@ class HMRTrainer(ABC):
         pred_betas = prediction['betas']
         pred_poses = torch.cat([prediction['root_orient'], prediction['pose_body'],prediction['pose_hand'] ], 1)
         pred_thetas = torch.cat([pred_poses, pred_betas], 1)
-
+        pred_kp_2d = proj_3D_to_2D(pred_kp_3d, data['image'], data['fx'], data['fy'], data['cx'], data['cy'])
+        gt_kp_2d = proj_3D_to_2D(gt_kp_3d, data['image'], data['fx'], data['fy'], data['cx'], data['cy'])
+        
         vert_diff = gt_vertices - pred_vertices
         loss_dict = {}
         if self.loss_cfg.get('v2v_l1', False):
             loss_dict['v2v_l1'] = torch.abs(vert_diff).mean()
         if self.loss_cfg.get('v2v_l2', False):
             loss_dict['v2v_l2'] = torch.pow(vert_diff, 2).mean()
-        ### add kp_2d_l2???
+        if self.loss_cfg.get('kp_2d_l1', False):
+            loss_dict['kp_2d_l1'] = self.kp_2d_l1_loss(gt_kp_2d, pred_kp_2d)
         if self.loss_cfg.get('kp_3d_l2', False):
-            loss_dict['kp_3d_l2'] = self.kp_3d_l2_loss(gt_kp_3d, pred_kp_3d)
+            loss_dict['kp_3d_l2'] = self.kp_2d_l1_loss(gt_kp_3d, pred_kp_3d)
         if self.loss_cfg.get('shape_l2', False):
             loss_dict['shape_l2'] = self.shape_l2_loss(gt_betas, pred_betas)
         if self.loss_cfg.get('pose_l2', False):
@@ -358,6 +361,12 @@ class HMRTrainer(ABC):
 
         return loss_dict
 
+    def kp_2d_l1_loss(self, gt_kp_2d, pred_kp_2d):
+        '''
+            Inputs: B x K x 2
+            Ouputs: L1 loss
+        '''
+        return torch.pow(gt_kp_2d - pred_kp_2d, 2).mean()
 
     def kp_3d_l2_loss(self, gt_kp_3d, pred_kp_3d):
         '''

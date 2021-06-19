@@ -78,3 +78,25 @@ def align_by_pelvis(joints):
         # left and right hips
         pelvis = (joints[:, 1, :] + joints[:, 2, :]) / 2.0
         return joints - torch.unsqueeze(pelvis, dim=1)
+
+
+@torch.no_grad()
+def proj_3D_to_2D(points, fx, fy, cx, cy):
+    """ Projects 3D points onto image plane.
+
+    Args:
+        points (torch.Tensor): 3D points (B, N, 3)
+                           fx: focal length (B,)
+                           fy: focal length (B,)
+                           cx: focal length (B,)
+                           cy: focal length (B,)
+
+    Returns:
+        2D poitns.
+    """
+    
+    # compute pixel locations
+    x = points[..., 0] / points[..., 2] * fx.view(-1, 1) + cx.view(-1, 1)
+    y = points[..., 1] / points[..., 2] * fy.view(-1, 1) + cy.view(-1, 1)
+    
+    return torch.stack([x,y]).permute(1, 2, 0)

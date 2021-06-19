@@ -188,7 +188,7 @@ class ConvModel_Pre(BaseModel):
 
         print(f'Loading resnet_50 model...')
         # hub.load('pytorch/vision:v0.9.0', 'inception_v3', pretrained=True)
-        self.backbone = models.resnet50(pretrained=False)
+        self.backbone = models.resnet50(pretrained=True)
 
         # train only the classifier layer
         for param in self.backbone.parameters():
