@@ -2,8 +2,11 @@ from abc import ABC
 
 from torch import nn
 from .body_model import BodyModel
-from torch import hub
+import torch
+import torch.nn.functional as F
 import torchvision.models as models
+import h5py
+import numpy as np
 
 
 class BaseModel(nn.Module, ABC):
@@ -14,7 +17,6 @@ class BaseModel(nn.Module, ABC):
 
         # parameters
         self.bm_path = cfg['data']['bm_path']
-        self.path_dmpl = cfg['data']['path_dmpl']
         self.in_ch = cfg['model'].get('in_ch', 3)
         self.out_ch = cfg['model'].get('out_ch', 70)
         self.img_resolution = cfg['data']['resy'], cfg['data']['resx']
@@ -24,9 +26,7 @@ class BaseModel(nn.Module, ABC):
 
         # body_model
         self.body_model = BodyModel(bm_path=self.bm_path,
-                                    # path_dmpl=self.path_dmpl,
-                                    # num_dmpls=8,
-                                    num_betas=10, # 10
+                                    num_betas=10,
                                     batch_size=self.batch_size).to(device=self.device)
 
     @staticmethod
@@ -36,6 +36,8 @@ class BaseModel(nn.Module, ABC):
             model = ConvModel(cfg)
         elif model_name == 'pre_trained':
             model = ConvModel_Pre(cfg)
+        elif model_name == 'pre_trained_reg':
+            model = ConvModel_Pre_Regressor(cfg)
         else:
             raise Exception(f'Model `{model_name}` is not defined.')
         return model
@@ -173,3 +175,136 @@ class ConvModel_Pre(BaseModel):
                        'pose_hand': pose_hand}
 
         return predictions
+
+
+class ParameterRegressor(nn.Module):
+
+    def __init__(self, feature_count):
+        super().__init__()
+        super().__init__()
+        # self.batch_size = batch_size
+        # In HMR implementation (https://github.com/MandyMo/pytorch_HMR) and
+        # https://github.com/nkolot/SPIN/blob/master/models/hmr.py they initialize with mean_theta (all smpl parameters concatened)
+        # init_theta = torch.from_numpy((np.random.random_sample(82) * (0.3+0.3) - 0.3).astype('float32'))
+        mean_params = h5py.File("../configs/neutral_smpl_mean_params.h5", mode="r")
+        init_theta = np.zeros(82, dtype=np.float)
+        init_theta[0:72] = mean_params['pose'][:]
+        init_theta[72:] = mean_params['shape'][:]
+        self.register_buffer('init_theta', torch.from_numpy(init_theta).float())
+
+        self.fc1 = nn.Linear(feature_count + 82, 1024)
+        self.drop1 = nn.Dropout()
+        self.fc2 = nn.Linear(1024, 1024)
+        self.drop2 = nn.Dropout()
+        self.dec_root_orient = nn.Linear(1024, 3)
+        self.dec_pos_body = nn.Linear(1024, 63)
+        self.dec_pos_hand = nn.Linear(1024, 6)
+        self.dec_beta = nn.Linear(1024, 10)
+
+
+    def forward(self, input, iterations):
+        '''
+            input: output of nn encoder
+        '''
+        batch_size = input.shape[0]
+        pred_theta = self.init_theta.expand(batch_size, -1)
+        pred_root_orient = pred_theta[:, :3]
+        pred_pos_body = pred_theta[:, 3:66]
+        pred_pos_hand = pred_theta[:, 66:72]
+        pred_beta = pred_theta[:, 72:]
+
+        # in HMR they use relu activation functions but not in SPIN where they also make use of the HMR (not sure how this impacts the model)
+        for i in range(iterations):
+            input_c = torch.cat([input, pred_theta], 1)
+            input_c = F.relu(self.fc1(input_c))
+            input_c = self.drop1(input_c)
+            input_c = F.relu(self.fc2(input_c))
+            input_c = self.drop2(input_c)
+            pred_root_orient = self.dec_root_orient(input_c) + pred_root_orient
+            pred_pos_body = self.dec_pos_body(input_c) + pred_pos_body
+            pred_pos_hand = self.dec_pos_hand(input_c) + pred_pos_hand
+            pred_beta = self.dec_beta(input_c) + pred_beta
+
+        return pred_root_orient, pred_pos_body, pred_pos_hand, pred_beta
+
+
+
+class Identity(nn.Module):
+    def __init__(self):
+        super(Identity, self).__init__()
+
+    def forward(self, x):
+        return x
+
+
+class ConvModel_Pre_Regressor(BaseModel):
+    def __init__(self, cfg):
+        super().__init__(cfg)
+
+        # self.backbone_f_len = cfg['model'].get('backbone_f_len', 512)
+        self._build_net()
+
+    def _build_net(self):
+        """ Creates NNs. """
+
+        print(f'Loading Resnet50 model...')
+        self.backbone = models.resnet50(pretrained=True)
+
+        # train only the classifier layer
+        for param in self.backbone.parameters():
+            param.requires_grad = True
+        fc_in = self.backbone.fc.in_features
+        # fc_out = self.backbone_f_len
+        # self.backbone.fc = nn.Linear(in_features=fc_in, out_features=fc_out)
+
+        # no classifier, Iterative regressor takes the output of resnet which is average pooled
+        self.backbone.fc = Identity()
+        self.regressor = ParameterRegressor(fc_in)
+
+    def forward(self, input_data):
+        """ Fwd pass.
+
+        Returns (dict):
+            mesh vertices (torch.Tensor): (B, 6890, 3)
+        """
+        image_crop = input_data['image_crop']
+        root_loc = input_data['root_loc']
+        # print(input_data['file_id'])
+
+        img_encoding = self.backbone(image_crop)
+        # img_encoding = img_encoding.view(img_encoding.size(0), -1)
+        # print(img_encoding.shape)
+
+        # regress parameters
+        iterations = 5
+        root_orient, pose_body, pose_hand, betas = self.regressor(img_encoding, iterations)
+
+        # regress vertices
+        vertices = self.get_vertices(root_loc, root_orient, betas, pose_body, pose_hand)
+
+        predictions = {'vertices': vertices,
+                       'root_loc': root_loc,
+                       'root_orient': root_orient,
+                       'betas': betas,
+                       'pose_body': pose_body,
+                       'pose_hand': pose_hand}
+
+        return predictions
+
+
+if __name__ == '__main__':
+    x = torch.rand(10,500).float()
+    net = ParameterRegressor(x.shape[1])
+    a,b,c,d = net(x,2)
+    # print(a.shape)
+    # print(net.named_buffers)
+    # mean_params = np.load("../../configs/smpl_mean_params.npz")
+    # init_pose = torch.from_numpy(mean_params['pose'][:].astype('float32')).unsqueeze(0)
+    # init_shape = torch.from_numpy(mean_params['shape'][:].astype('float32')).unsqueeze(0)
+    # init_theta = torch.cat([init_pose, init_shape], 1)
+    # print(mean_params['pose'].shape)
+    # print(init_pose.shape)
+    # print(mean_params.keys())
+
+    # mean_values = h5py.File("/home/henry/Downloads/neutral_smpl_mean_params.h5")
+    # print(mean_values['pose'].shape)

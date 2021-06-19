@@ -59,9 +59,9 @@ class CheckpointIO(object):
         load_dict = dict()
         try:
             load_dict = self.load(filename)
-            print(f'Model loaded: {filename}')
+            print(f'Pretrained model {filename} loaded... ')
         except FileExistsError:
-            print('Model NOT loaded')
+            print('Pretrained model not loaded...')
 
         return load_dict
 

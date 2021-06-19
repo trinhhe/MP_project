@@ -163,8 +163,8 @@ class H36MDataset(torch.utils.data.Dataset):
                     points_dict['root_orient'], points_dict['pose_body'], points_dict['pose_hand'] = pose_processing(full_pose, r=rot, f=flip)
 
                     # 4.) Add random Gaussian noise to pose/beta
-                    mu, sigma = 0, 0.1  # set mean and standard deviation
-                    noise_factor = 0.5
+                    # mu, sigma = 0, 0.1  # set mean and standard deviation
+                    # noise_factor = 0.5
                     # gaussian_noise = np.random.normal(mu, sigma, size=points_dict['betas'].shape)
                     # points_dict['betas'] = points_dict['betas'] + noise_factor * gaussian_noise.astype('float32')
                     # gaussian_noise = np.random.normal(mu, sigma, size=points_dict['pose_body'].shape)

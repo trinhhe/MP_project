@@ -52,7 +52,7 @@ def get_data_loader(cfg, mode='train'):
         subset = Subset(dataset, indices=indices)
 
     # remove mode=='train' to subsample the val set too
-    data_loader = DataLoader(subset if cfg['data'].get('downsample', False) and mode=='train' else dataset,
+    data_loader = DataLoader(subset if cfg['data'].get('downsample', False) and mode in ['train','val'] else dataset,
                              batch_size=batch_size,
                              num_workers=cfg['training'].get('num_workers', 0),
                              shuffle=mode == 'train',

@@ -91,7 +91,9 @@ def test(cfg, cfg_path, model_file):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Test pipeline.')
     parser.add_argument('--config', type=str, default='../configs/default.yaml', help='Path to a config file.')
-    parser.add_argument('--model_file', type=str, default='../tmp_out/logs/20210615-025849_[cluster_resnet18ft_allS_valonS6_old_img_augm_on]/model_best.pt', help='Load model for eval.')
+    # 0.07 '../tmp_out/logs/20210615-025849_[cluster_resnet18ft_allS_valonS6_old_img_augm_on]/model_best.pt'
+    # 0.02 '../tmp_out/logs/20210616-164438_[resnet18_pret_S1_S6_revised_img_pose_augm_debug_b32_adam_gaus]/model_best.pt'
+    parser.add_argument('--model_file', type=str, default='../tmp_out/best_models/generator_best.pt', help='Load model for eval.')
     args = parser.parse_args()
     print(args)
 
