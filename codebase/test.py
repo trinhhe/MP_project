@@ -59,7 +59,9 @@ def test(cfg, cfg_path, model_file):
 
     # init variables
     model = config.get_model(cfg, 1)
-    trainer = config.get_trainer(model, out_dir, cfg)
+    if(cfg['trainer'] == 'hmr'):
+        cfg['trainer'] = 'conv'
+        trainer = config.get_trainer(model, out_dir, cfg)
 
     # init datasets
     test_data_loader = config.get_data_loader(cfg, mode='test')
