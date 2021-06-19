@@ -73,3 +73,8 @@ def batch_rodrigues(aa_rots):
     ident = torch.eye(3, dtype=dtype, device=device).unsqueeze(dim=0)
     rot_mat = ident + sin * K + (1 - cos) * torch.bmm(K, K)
     return rot_mat
+
+def align_by_pelvis(joints):
+        # left and right hips
+        pelvis = (joints[:, 1, :] + joints[:, 2, :]) / 2.0
+        return joints - torch.unsqueeze(pelvis, dim=1)

@@ -1,6 +1,8 @@
 import argparse
 import config
 import torch
+from regressor.model import Discriminator, ConvModel_Pre
+from regressor.training import HMRTrainer
 
 if __name__ == '__main__':
     ####### TESTING ######
@@ -10,32 +12,37 @@ if __name__ == '__main__':
 
     # load model
     cfg = config.load_config(_args)
-    model = config.get_model(cfg)
-
-    # load ds
+    
+    out_dir = cfg['out_dir']
+    # # load ds
     train_data_loader = config.get_data_loader(cfg, mode='train')
-    val_data_loader = config.get_data_loader(cfg, mode='val')
+    # val_data_loader = config.get_data_loader(cfg, mode='val')
 
-    # take some examples
+    # # take some examples
     data_train = next(iter(train_data_loader))
-    data_train.keys()
-    data_val = next(iter(val_data_loader))
-    data_val.keys()
+    # data_train.keys()
+    # data_val = next(iter(val_data_loader))
+    # data_val.keys()
 
-    model.eval()
-    prediction = model.forward(data_train)
-    pred_vertices = prediction['vertices']
-    print(pred_vertices.shape)
+    # model.eval()
+    # prediction = model.forward(data_train)
+    # pred_vertices = prediction['vertices']
+    # print(pred_vertices.shape)
 
-    joints, v_a_pose, f, abs_bone_transforms, bone_transforms, betas = model.get_joints(data_train['root_loc'],
-                                        data_train['root_orient'],
-                                        data_train['betas'],
-                                        data_train['pose_body'],
-                                        data_train['pose_hand'])
-    print(joints.shape)
-    print(v_a_pose.shape)
-    print(f.shape)
-    print(abs_bone_transforms.shape)
-    print(bone_transforms.shape)
-    print(betas.shape)
 
+    disc = Discriminator().to(device=cfg['device'])
+    gen = config.get_model(cfg, 1)
+
+    e_opt = torch.optim.Adam(
+            gen.parameters(),
+            lr = 0.0001,
+            weight_decay = 0.0001
+    )
+    d_opt = torch.optim.Adam(
+            disc.parameters(),
+            lr = 0.001,
+            weight_decay = 0.0001
+    )
+    trainer = HMRTrainer(gen, disc, e_opt, d_opt, out_dir, cfg)
+    lol = trainer.train_step(data_train)
+    print(lol.items())

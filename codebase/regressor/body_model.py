@@ -109,7 +109,8 @@ class BodyModel(nn.Module):
         # indices of parents for each joints
         kintree_table = smpl_dict['kintree_table'].astype(np.int32)
         self.register_buffer('kintree_table', torch.tensor(kintree_table, dtype=torch.int32))
-
+        # print("KINTREE_TABLE")
+        # print(kintree_table)
         # LBS weights
         # weights = np.repeat(smpl_dict['weights'][np.newaxis], batch_size, axis=0)
         weights = smpl_dict['weights']

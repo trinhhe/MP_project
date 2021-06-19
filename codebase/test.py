@@ -58,7 +58,7 @@ def test(cfg, cfg_path, model_file):
     model_file = model_file if model_file is not None else 'model_best.pt'
 
     # init variables
-    model = config.get_model(cfg)
+    model = config.get_model(cfg, 1)
     trainer = config.get_trainer(model, out_dir, cfg)
 
     # init datasets

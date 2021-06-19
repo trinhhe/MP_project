@@ -61,7 +61,7 @@ def proj_verts(points, images, fx, fy, cx, cy):
 
 def train(cfg):
     # Load model
-    model = config.get_model(cfg)
+    model = config.get_model(cfg, 1)
 
     return model, cfg
 
@@ -94,9 +94,10 @@ def plot_gt_pred(model, data, mode, max_images=5):
     # predict keypoints
     prediction = model.forward(data)
     pred_vertices = prediction['vertices']
+    
 
     # get verticies
-    gt_vertices = model.get_vertices(data['root_loc'],
+    gt_vertices, gt_joints = model.get_vertices_and_joints(data['root_loc'],
                                      data['root_orient'],
                                      data['betas'],
                                      data['pose_body'],
@@ -113,7 +114,7 @@ def plot_gt_pred(model, data, mode, max_images=5):
         elif mode == 'val':
             data_plot = data['image']
 
-        gt_images = proj_verts(gt_vertices, data_plot,
+        gt_images = proj_verts(gt_joints[:,1:3,:], data_plot,
                                data['fx'], data['fy'],
                                data['cx'], data['cy'])
 
@@ -162,11 +163,11 @@ if __name__ == '__main__':
 
     # load model
     model, cfg = train(config.load_config(_args))
-    modelfile = _args.model_file
-    out_dir = cfg['out_dir']
-    load_dict = CheckpointIO(out_dir, model=model).safe_load(modelfile)
-    metric_val_best = load_dict.get('loss_val_best', float('inf'))
-    print(f'Current best validation metric: {metric_val_best:.8f}')
+    # modelfile = _args.model_file
+    # out_dir = cfg['out_dir']
+    # load_dict = CheckpointIO(out_dir, model=model).safe_load(modelfile)
+    # metric_val_best = load_dict.get('loss_val_best', float('inf'))
+    # print(f'Current best validation metric: {metric_val_best:.8f}')
 
     # print(load_dict.keys())
     # print(load_dict.items())

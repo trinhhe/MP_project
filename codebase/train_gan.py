@@ -20,30 +20,34 @@ sns.set()
 cudnn.benchmark = True
 
 
-def train(cfg, model_file):
+def train(cfg, gen_file, disc_file):
     # shortened
     out_dir = cfg['out_dir']
-    model_file = model_file if model_file is not None else 'model_best.pt'  # continue from last best checkpoint
+    gen_file = gen_file if gen_file is not None else 'generator_best.pt'  # continue from last best checkpoint
+    disc_file = disc_file if disc_file is not None else 'discriminator_best.pt'  # continue from last best checkpoint
     print_every = cfg['training']['print_every']
     checkpoint_every = cfg['training']['checkpoint_every']
     validate_every = cfg['training']['validate_every']
     model_selection_metric = cfg['training'].get('model_selection_metric', 'v2v_l2')
 
     # Load model
-    model = config.get_model(cfg, 1)
+    generator = config.get_model(cfg, 1)
+    discriminator = config.get_model(cfg, 0)
 
     # Selet Optimizer
-    optimizer = config.get_optimizer(model, cfg)
+    gen_opt, disc_opt = config.get_optimizer_gan(generator, discriminator, cfg)
 
     # Select Trainer
-    trainer = config.get_trainer(model, out_dir, cfg, optimizer)
+    trainer = config.get_trainer_gan(generator, discriminator, out_dir, cfg, gen_opt, disc_opt)
 
     # LR secheduler (Reduce LR by factor of 0.1 after every 3 epochs of plateau)
-    exp_lr_scheduler = lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.1, patience=2, min_lr=1e-6,
+    gen_exp_lr_scheduler = lr_scheduler.ReduceLROnPlateau(gen_opt, mode='min', factor=0.1, patience=2, min_lr=1e-6,
+                                                      verbose=True)
+    disc_exp_lr_scheduler = lr_scheduler.ReduceLROnPlateau(disc_opt, mode='min', factor=0.1, patience=2, min_lr=1e-6,
                                                       verbose=True)
     # Load checkpoint
-    checkpoint_io = CheckpointIO(out_dir, model=model, optimizer=optimizer)
-
+    gen_checkpoint = CheckpointIO(out_dir, model=generator, optimizer=gen_opt)
+    disc_checkpoint = CheckpointIO(out_dir, model=discriminator, optimizer=disc_opt)
     # init datasets
     train_data_loader = config.get_data_loader(cfg, mode='train')
     val_data_loader = config.get_data_loader(cfg, mode='val')
@@ -56,20 +60,27 @@ def train(cfg, model_file):
     # eval_dict, val_img = trainer.evaluate(items)
 
     # load pretrained model if any
-    load_dict = checkpoint_io.safe_load(model_file)
+    load_dict = gen_checkpoint.safe_load(gen_file)
+    
+    load_dict = disc_checkpoint.safe_load(disc_file)
     epoch_it = load_dict.get('epoch_it', 0)
     it = load_dict.get('it', 0)
     metric_val_best = load_dict.get('loss_val_best', float('inf'))
 
     # prepare loggers
-    print(model, f'\n\nTotal number of parameters: {sum(p.numel() for p in model.parameters()):d}')
+    # print(generator, f'\n\nTotal number of parameters: {sum(p.numel() for p in generator.parameters()):d}')
+    # print("------------------------------------------------------------")
+    # print(discriminator, f'\n\nTotal number of parameters: {sum(p.numel() for p in discriminator.parameters()):d}')
+    print(f'\n\nTotal number of parameters: {sum(p.numel() for p in generator.parameters()):d}')
+    print("---------------------------------------------------------------------")
+    print(f'\n\nTotal number of parameters: {sum(p.numel() for p in discriminator.parameters()):d}')
     print(f'Current best validation metric: {metric_val_best:.8f}')
 
     #####################
     # Name the experiment
     #####################
     config.cond_mkdir(out_dir)
-    comment = '_[resnet50_dataaug_batch32_adam]'  # '_[resnet18]'
+    comment = '_[resnet50_dataaug_batch5_GAN]'  # '_[resnet18]'
     log_time = datetime.now().strftime("%Y%m%d-%H%M%S")
     logger = SummaryWriter(join(out_dir, 'logs', log_time + comment))
     print(f'Running experiment: {logger.file_writer.get_logdir()}')
@@ -92,7 +103,7 @@ def train(cfg, model_file):
 
             # Run trainer, get train loss metrics
             loss_dict = trainer.train_step(batch)
-            loss = loss_dict['total_loss']
+            loss = loss_dict['gen_loss']
 
             # Log train loss metric (v2v_l1 / v2v_l2 / total_loss)
             for k, v in loss_dict.items():
@@ -105,7 +116,7 @@ def train(cfg, model_file):
             # Save checkpoint
             if checkpoint_every != 0 and (it % checkpoint_every) == 0:
                 print('Saving checkpoint...')
-                checkpoint_io.save(f'model_{it:d}.pt', epoch_it=epoch_it, it=it, loss_val_best=metric_val_best)
+                gen_checkpoint.save(f'model_{it:d}.pt', epoch_it=epoch_it, it=it, loss_val_best=metric_val_best)
 
             # Run validation
             if validate_every > 0 and (it % validate_every) == 0 and it > 0:
@@ -131,8 +142,10 @@ def train(cfg, model_file):
 
                 if metric_val < metric_val_best:
                     metric_val_best = metric_val
-                    print(f'New best model (loss {metric_val_best:.8f})')
-                    checkpoint_io.save(f'{logger.logdir}/model_best.pt', epoch_it=epoch_it, it=it, loss_val_best=metric_val_best)
+                    print(f'New best generator(loss {metric_val_best:.8f})')
+                    gen_checkpoint.save(f'{logger.logdir}/generator_best.pt', epoch_it=epoch_it, it=it, loss_val_best=metric_val_best)
+                    disc_checkpoint.save(f'{logger.logdir}/discriminator_best.pt', epoch_it=epoch_it, it=it, loss_val_best=metric_val_best)
+
                     bad_epochs = 0
                 else:
                     bad_epochs += 1
@@ -147,7 +160,8 @@ def train(cfg, model_file):
         print(f'Epoch completed in {(time_elapsed // 60):.0f}m {(time_elapsed % 60):.0f}s.')
 
     # step learning rate scheduler
-    exp_lr_scheduler.step(metric_val)
+    gen_exp_lr_scheduler.step(metric_val)
+    disc_exp_lr_scheduler.step(metric_val)
 
     time_elapsed = time() - t_0
     print(f'Training completed in {(time_elapsed // 60):.0f}m {(time_elapsed % 60):.0f}s.')
@@ -156,13 +170,14 @@ def train(cfg, model_file):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Train pipeline.')
     parser.add_argument('--config', type=str, default='../configs/default.yaml',  help='Path to a config file.')
-    parser.add_argument('--model_file', type=str, default=None, help='Overwrite the model path.')
+    parser.add_argument('--gen_file', type=str, default=None, help='Overwrite the generator path.')
+    parser.add_argument('--disc_file', type=str, default=None, help='Overwrite the discriminator path')
     parser.add_argument('--epochs', type=int, default=20, metavar='N', help='number of epochs to train (default: 20)')
     parser.add_argument('--early-stop', type=int, default=5, metavar='N', help='number of iters to stop traing(default: 5)')
     _args = parser.parse_args()
     print(_args)
 
-    # train(config.load_config(_args), _args.model_file)
+    train(config.load_config(_args), _args.gen_file, _args.disc_file)
     # cfg = config.load_config(_args)
     # model = config.get_model(cfg, 1)
     # import os

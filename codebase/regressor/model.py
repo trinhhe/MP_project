@@ -78,7 +78,7 @@ class BaseModel(nn.Module, ABC):
               pose_hand (torch.Tensor): Hand joint rotations (B, 2*3).
 
         Returns:
-            mesh vertices (torch.Tensor): (B, J, 3)
+            joint vertices (torch.Tensor): (B, J, 3)
         """
         # print(f'batchsize: {self.batch_size}')
         # print(f'rootloc{root_loc.shape}')
@@ -89,13 +89,33 @@ class BaseModel(nn.Module, ABC):
                                betas=betas)
 
         joints = body.Jtr
-        # v_a_pose = body.v_a_pose
-        # f = body.f
-        # abs_bone_transforms = body.abs_bone_transforms
-        # bone_transforms = body.bone_transforms
-        # betas = body.betas
-        # return joints, v_a_pose, f, abs_bone_transforms, bone_transforms, betas
         return joints
+
+    
+    def get_vertices_and_joints(self, root_loc, root_orient, betas, pose_body, pose_hand):
+        """ Fwd pass through the parametric body model to obtain 3D joint vertices.
+
+        Args:
+               root_loc (torch.Tensor): Root location (B, 3).
+            root_orient (torch.Tensor): Root orientation (B, 3).
+                  betas (torch.Tensor): Shape coefficients (B, 10).
+              pose_body (torch.Tensor): Body joint rotations (B, 21*3).
+              pose_hand (torch.Tensor): Hand joint rotations (B, 2*3).
+
+        Returns:
+            mesh vertices (torch.Tensor): (B, J, 3)
+            joint vertices (torch.Tensor): (B, J, 3)
+        """
+        # print(f'batchsize: {self.batch_size}')
+        # print(f'rootloc{root_loc.shape}')
+        body = self.body_model(trans=root_loc,
+                               root_orient=root_orient,
+                               pose_body=pose_body,
+                               pose_hand=pose_hand,
+                               betas=betas)
+        vertices = body.v
+        joints = body.Jtr
+        return vertices, joints
 
 
 class ParameterRegressor(nn.Module):
@@ -168,7 +188,7 @@ class ConvModel_Pre(BaseModel):
 
         print(f'Loading resnet_50 model...')
         # hub.load('pytorch/vision:v0.9.0', 'inception_v3', pretrained=True)
-        self.backbone = models.resnet50(pretrained=True)
+        self.backbone = models.resnet50(pretrained=False)
 
         # train only the classifier layer
         for param in self.backbone.parameters():
@@ -202,7 +222,7 @@ class ConvModel_Pre(BaseModel):
             img_encoding, iterations)
 
         # regress vertices
-        vertices = self.get_vertices(
+        vertices, joints = self.get_vertices_and_joints(
             root_loc, root_orient, betas, pose_body, pose_hand)
 
         predictions = {'vertices': vertices,
@@ -210,7 +230,8 @@ class ConvModel_Pre(BaseModel):
                        'root_orient': root_orient,
                        'betas': betas,
                        'pose_body': pose_body,
-                       'pose_hand': pose_hand}
+                       'pose_hand': pose_hand,
+                       'joints': joints}
 
         return predictions
 
