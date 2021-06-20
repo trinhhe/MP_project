@@ -7,7 +7,7 @@ Henry Trinh (trinhhe@student.ethz.ch)
 
 ## Description
 
-In this project, the goal was to conduct 3D reconstruction of animatable humans directly from 2D images by leveraging the skinned multi-person linear model (SMPL). For this reason we employ a GAN architecture on the Human 3.6M dataset.
+In this project, the goal was to conduct 3D reconstruction of humans directly from 2D images by leveraging the skinned multi-person linear model (SMPL). For this reason we employ a GAN architecture on the Human 3.6M dataset.
 
 
 ## Setup
