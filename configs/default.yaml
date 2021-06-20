@@ -8,9 +8,9 @@ model:
   name: pre_trained # conv
 
 training:
-  print_every: 400
+  print_every: 800
   validate_every: 0 # 5000
-  checkpoint_every: 400 # 5000
+  checkpoint_every: 800 # 5000
 
   optimizer:
     # name: SGD
@@ -21,33 +21,33 @@ training:
     name1: ADAM # discriminator optimizer
     lr1: 0.001
 
-  batch_size: 12
+  batch_size: 20
   num_workers: 4
 
 loss:
   v2v_l1: True # loss type
-  v2v_l1_w: 10.0 # corresponding weight
+  v2v_l1_w: 12.0 # corresponding weight
 
   v2v_l2: True
   v2v_l2_w: 15.0
 
   kp_2d_l1: True # 2D joint position loss L1
-  kp_2d_l1_w: 6.0
+  kp_2d_l1_w: 20.0
 
   kp_3d_l2: True # 3D joint position loss L2
-  kp_3d_l2_w: 6.0
+  kp_3d_l2_w: 10.0
 
   shape_l2: True
-  shape_l2_w: 2
+  shape_l2_w: 5.0
 
   pose_l2: True
-  pose_l2_w: 4.0
+  pose_l2_w: 8.0
 
   gen_disc_l2: True # Adversarial loss function for encoder/generator
-  gen_disc_l2_w: 2
+  gen_disc_l2_w: 4.0
 
   disc_loss: True
-  disc_loss_w: 3
+  disc_loss_w: 5.0
 
 data:
   dataset: base # dataset type
@@ -56,7 +56,7 @@ data:
   train_subjects: S1,S5,S6,S7,S8
   val_subjects: S8  # TODO:you could use this subjects for training as well
   downsample: True
-  ds_ratio: 0.5 # 0.2 # take every 5th value
+  ds_ratio: 0.5 # take every 2nd value
 
   # there is no need to modify the following parameters on Leonhard
   dataset_folder: /cluster/project/infk/hilliges/lectures/mp21/project3/data/H36M_data_st
