@@ -57,7 +57,7 @@ cd codebase/
 
 To train the model:
 ```
-bsub -n 6 -W 2:00 -o hsd_experiment -R "rusage[mem=2048, ngpus_excl_p=1]" python fulltraining.py --epochs 3
+bsub -n 6 -W 24:00 -o hsd_experiment -R "rusage[mem=2048, ngpus_excl_p=1]" python fulltraining.py --epochs 3
 ```
 
 To predict:
