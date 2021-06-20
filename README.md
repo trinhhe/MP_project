@@ -47,6 +47,7 @@ $ conda activate mp_project3
 ## How to run on the Leonhard Cluster:
 ```
 module load cuda/10.1.243 cudnn/7.6.4
+module load eth_proxy
 conda activate mp_project3
 cd codebase/
 ```
