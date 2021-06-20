@@ -117,11 +117,11 @@ def train(cfg, gen_file, disc_file):
             if checkpoint_every != 0 and (it % checkpoint_every) == 0:
                 # print('Checkpoint...')
 
-                if loss < loss_best:
+                if loss < loss_best and loss >= 0.01:  # loss >= 0.01 to combat overfitting, confirmed by experiments
                     loss_best = loss
                     print(f'New best generator(loss {loss_best:.8f})')
-                    gen_checkpoint.save(f'{out_dir}/{it:05d}_generator_best.pt', epoch_it=epoch_it, it=it, loss_best=loss_best)
-                    disc_checkpoint.save(f'{out_dir}/{it:05d}_discriminator_best.pt', epoch_it=epoch_it, it=it, loss_best=loss_best)
+                    gen_checkpoint.save(f'{out_dir}/generator_best.pt', epoch_it=epoch_it, it=it, loss_best=loss_best)
+                    disc_checkpoint.save(f'{out_dir}/discriminator_best.pt', epoch_it=epoch_it, it=it, loss_best=loss_best)
 
 
         # time to finish one epoch
