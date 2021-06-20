@@ -63,4 +63,7 @@ dependencies:
     - opencv-python==4.5.1.48
     - tqdm==4.60.0
     - seaborn
+    - h5py
+    - matplotlib
+    
 prefix: /home/marko/anaconda3/envs/mp_project3
