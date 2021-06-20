@@ -120,8 +120,8 @@ def train(cfg, gen_file, disc_file):
                 if loss < loss_best:
                     loss_best = loss
                     print(f'New best generator(loss {loss_best:.8f})')
-                    gen_checkpoint.save(f'{logger.logdir}/{it:05d}_generator_best.pt', epoch_it=epoch_it, it=it, loss_best=loss_best)
-                    disc_checkpoint.save(f'{logger.logdir}/{it:05d}_discriminator_best.pt', epoch_it=epoch_it, it=it, loss_best=loss_best)
+                    gen_checkpoint.save(f'{out_dir}/{it:05d}_generator_best.pt', epoch_it=epoch_it, it=it, loss_best=loss_best)
+                    disc_checkpoint.save(f'{out_dir}/{it:05d}_discriminator_best.pt', epoch_it=epoch_it, it=it, loss_best=loss_best)
 
 
         # time to finish one epoch
