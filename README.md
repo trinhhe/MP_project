@@ -35,10 +35,6 @@ $ conda activate mp_project3
     ├── regressor           # Model architecture and trainer
     └── .py files           # Base files to run experiments as described below
 └── configs                 # Configruation to run final experiment and SMPL mean shape
-<<<<<<< HEAD
-
-=======
->>>>>>> 9a21cb6d6a2b47964a59470465ceb6143fbbe65c
 ```
 <!-- └── misc                # Images for README -->
 
