@@ -59,14 +59,6 @@ data:
   ds_ratio: 0.5 # 0.2 # take every 5th value
 
   # there is no need to modify the following parameters on Leonhard
-  # dataset_folder: /cluster/project/infk/hilliges/lectures/mp21/project3/data/H36M_data_st
-  # img_folder: /cluster/project/infk/hilliges/lectures/mp21/project3/data/H36M
-  # bm_path: /cluster/project/infk/hilliges/lectures/mp21/project3/body_model/model.npz
-
-  # dataset_folder: /home/henry/Documents/ETH_MA/MachinePerception/project3/H36M_data_st
-  # img_folder: /home/henry/Documents/ETH_MA/MachinePerception/project3/H36M
-  # bm_path: /home/henry/Documents/ETH_MA/MachinePerception/project3/body_model/model.npz
-
-  img_folder: D:\Bibliothek\MP\project3\data\H36M
-  dataset_folder: D:\Bibliothek\MP\project3\data\H36M_data_st
-  bm_path: D:\Bibliothek\MP\project3\body_model\model.npz
+  dataset_folder: /cluster/project/infk/hilliges/lectures/mp21/project3/data/H36M_data_st
+  img_folder: /cluster/project/infk/hilliges/lectures/mp21/project3/data/H36M
+  bm_path: /cluster/project/infk/hilliges/lectures/mp21/project3/body_model/model.npz
