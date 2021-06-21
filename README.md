@@ -60,5 +60,5 @@ bsub -n 6 -W 24:00 -o hsd_experiment -R "rusage[mem=2048, ngpus_excl_p=1]" pytho
 
 To predict:
 ```
-bsub -n 6 -W 2:00 -o hsd_test -R "rusage[mem=2048, ngpus_excl_p=1]" python test.py --model_path /tmp_out/generator_best.pt
+bsub -n 6 -W 2:00 -o hsd_test -R "rusage[mem=2048, ngpus_excl_p=1]" python test.py --model_file ../tmp_out/generator_best.pt
 ```
